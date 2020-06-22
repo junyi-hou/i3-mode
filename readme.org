@@ -1,0 +1,8 @@
+* Introduction
+
+An ~emacs~ global minor mode that delegate window management to ~i3wm~.
+
+* TODOs
+- [ ] delegate all window management functions (split, move focus, etc.) to ~i3wm~
+  - [ ] allow only 1 window per frame
+- [ ] app launcher using ~emacsclient~
