@@ -22,5 +22,8 @@ One advantage of this package is allow you use an unified set of hotkeys to move
     #+end_src
 
 * Usage
+Call ~i3-mode~
 
-Call ~i3-mode~ and enjoy!
+* TODO list
+- ~split-window-preferred-function~ is not respected since we do not use window anymore
+- how to deal with ~magit~ mode?
