@@ -1,0 +1,12 @@
+#!/bin/bash
+
+DIRECTION=$1
+
+FOCUS_WINDOW_ID=$(xprop -root | awk '/_NET_ACTIVE_WINDOW\(WINDOW\)/{print $NF}')
+FOCUS_WINDOW_CLASS=$(xprop -id $FOCUS_WINDOW_ID | awk '/WM_CLASS/{print $NF}' | cut -d'"' -f2)
+
+if [[ $FOCUS_WINDOW_CLASS =~ ^[Ee]macs.* ]]; then
+    emacsclient -e "(i3-move-focus '$DIRECTION)"
+else
+    i3-msg "focus $DIRECTION"
+fi
