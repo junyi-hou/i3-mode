@@ -16,14 +16,7 @@
   "Delegate the window management role to i3wm"
   :global t
   nil nil nil
-  (if i3-mode
-      (progn
-        (advice-add #'split-window-below :override #'i3-split-vertical)
-        (advice-add #'split-window-right :override #'i3-split-horizontal)
-        (advice-add #'other-window :override #'other-frame))
-    (advice-remove #'split-window-below #'i3-split-vertical)
-    (advice-remove #'split-window-right #'i3-split-horizontal)
-    (advice-remove #'other-window #'other-frame)))
+  )
 
 
 ;;; replacing window management with i3
