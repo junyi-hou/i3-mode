@@ -105,6 +105,7 @@ example:
 
     ;; now move the focus to mimic split at different directions
     ;; and return the new window
+    ;; FIXME: use the new emacsclient to call the following code?
     (sleep-for 0.1) ;; HACK: need to allow some time for emacsclient to finish loading
     (let ((new-window nil))
       (cond ( ; new window is below - move focus up
