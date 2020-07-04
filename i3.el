@@ -3,8 +3,12 @@
 ;; Author: Junyi Hou <junyi.yi.hou@gmail.com>
 ;; Maintainer: Junyi Hou <junyi.yi.hou@gmail.com>
 ;; Version: 0.0.1
-;; Package-requires: ((emacs "26"))
+;; Package-requires: ((emacs "27") (dash "2.17.0"))
 
+
+(require 'dash)
+(require 'seq)
+(require 'cl-lib)
 
 (defgroup i3 nil
   "Customization group for `i3-mode'"
