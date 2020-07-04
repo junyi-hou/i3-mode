@@ -126,6 +126,17 @@ example:
 ;; (advice-add 'split-window :override 'i3--split-window)
 (advice-add 'split-window :around #'i3-split-window)
 
+;; 2. delete-window
+
+(defun i3-delete-window (fn &optional window)
+  "Allow `delete-window' to delete frame which WINDOW lives in if there WINDOW is the only window in that frame."
+  (let ((frame (if (and window (windowp window))
+                   (window-frame window)
+                 (selected-frame))))
+    (if (= 1 (length (window-list frame)))
+        (delete-frame frame)
+      (funcall fn window))))
+
 
 (defun i3-move-focus (direction)
   "Move focus in DIRECTION.  When error, move focus using i3's focus move mechanism."
