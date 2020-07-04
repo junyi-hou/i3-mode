@@ -138,6 +138,70 @@ example:
       (funcall fn window))))
 
 
+
+;; 3. pop-to-buffer
+
+(defun i3-pop-to-buffer (fn buffer-or-name &optional action norecord)
+  "If the frame containing BUFFER-OR-NAME is visible, goto that frame instead.  Otherwise call normal `pop-to-buffer'."
+  (interactive (list (read-buffer "Pop to buffer: " (other-buffer))
+		                 (if current-prefix-arg t)))
+
+  (let ((window-id (-> (current-buffer)
+                       (get-buffer-window t)
+                       window-frame
+                       (frame-parameter 'window-id)
+                       string-to-number
+                       (- 4)))
+        (visible-window-id (i3--get-visible-window)))
+    (if (memq window-id visible-window-id)
+        (i3--switch-to-frame window-id))
+    (funcall fn buffer-or-name action norecord)))
+
+(defun i3--get-visible-workspace ()
+  "Query the visible workspace from i3."
+  (--> "i3-msg -t get_workspaces"
+       (shell-command-to-string it)
+       (json-parse-string it
+                          :object-type 'alist)
+       (seq-filter (lambda (ws) (eq t (alist-get 'visible ws))) it)
+       (--map (alist-get 'name it) it)))
+
+(defun i3--extract-windows (workspace)
+  "Extract all window id from i3 WORKSPACE.  WORKSPACE should be an alist tree."
+  (let ((window-id (alist-get 'window workspace)))
+    (if (numberp window-id)
+        window-id
+      (->> (alist-get 'nodes workspace)
+           (--map (i3--extract-windows it))
+           -flatten))))
+
+(defun i3--get-visible-window (&optional i3-tree visible-workspace)
+  "Return (a list of) window ids of visible windows from I3-TREE.  Visibility of a window is defined by whether the workspace containing the window is visible. VISIBLE-WORKSPACE contains the name of the workspaces that are currently visible.
+
+If I3-TREE is omitted, use the root tree (i.e., \"i3-msg -t get_tree\"), if VISIBLE-WORKSPACE is omitted, query it using `i3--get-visible-workspace'."
+  (let ((i3-tree (or i3-tree
+                     (-> "i3-msg -t get_tree"
+                         shell-command-to-string
+                         (json-parse-string :object-type 'alist))))
+        (visible-workspace (or visible-workspace
+                               (i3--get-visible-workspace))))
+    (cond ((and (listp i3-tree)
+                (string= (alist-get 'type i3-tree) "workspace")
+                (member (alist-get 'name i3-tree) visible-workspace))
+           ;; base case -- when I3-TREE is a workspace alist
+           (i3--extract-windows i3-tree))
+          ((listp i3-tree)
+           ;; when I3-TREE is an alist but not a workspace
+           (->> i3-tree
+                (alist-get 'nodes)
+                (--map (i3--get-visible-window it visible-workspace))
+                -flatten))
+          ((vectorp i3-tree)
+           ;; when I3-TREE is a vector of alist
+           (->> i3-tree
+                (--map (i3--get-visible-window it visible-workspace))
+                -flatten)))))
+
 (defun i3-move-focus (direction)
   "Move focus in DIRECTION.  When error, move focus using i3's focus move mechanism."
   (interactive)
