@@ -11,6 +11,13 @@
   :group 'convenience
   :prefix "i3-")
 
+(defcustom i3-function-should-use-window
+  '(magit-display-buffer transient--show)
+  "A list of function where `i3-split-window' will use the original `split-window'."
+  :type '(repeat function)
+  :group 'i3)
+
+
 ;;;###autoload
 (define-minor-mode i3-mode
   "Delegate the window management role to i3wm"
@@ -20,6 +27,8 @@
 
 
 ;;; replacing window management with i3
+
+;; 0. general IPC
 
 (defvar i3--debug-buffer " *i3-debug*")
 
@@ -34,44 +43,20 @@ examples:
                   :command `("i3-msg" ,@args)
                   :buffer i3--debug-buffer)))
 
+
+
+;; 1. split window
+
 (defconst i3-split-axis
   '((v . "height")
     (h . "width")))
 
-(defun i3--switch-to-frame (frame)
-  "Switch the focus to FRAME.  FRAME must be visible and live."
-  (unless (and frame (frame-live-p frame) (frame-visible-p frame))
-    (user-error "FRAME must be live and visible"))
-  (let ((window-id (- (string-to-number (frame-parameter frame 'window-id)) 4)))
-    (i3-cmd (concat "[id=\"" (int-to-string window-id) "\"]") "focus")))
-
-(defun i3--call-stack ()
-  "Return the list of function called.
-example:
-(defun bar () (i3--call-stack))
-(defun foo () (bar))
-
-(foo) ;; returns (command-execute call-interactively funcall-interactively eval-last-sexp elisp--eval-last-sexp eval bar foo)"
-  (let ((frames)
-        (frame)
-        (index 5))
-    (while (setq frame (backtrace-frame index))
-      (push frame frames)
-      (cl-incf index))
-    (mapcar 'cadr (cl-remove-if-not 'car frames))))
-
-(defcustom i3-function-should-use-window
-  '(magit-display-buffer transient--show)
-  "A list of function where `i3-split-window' will use the original `split-window'."
-  :type '(repeat function)
-  :group 'i3)
-
+;;;###autoload
 (defun i3-split-window (fn &optional window size side pixelwise)
   (let ((callers (i3--call-stack)))
     (if (cl-intersection callers i3-function-should-use-window)
         (funcall fn window size side pixelwise)
       (i3--split-window window size side pixelwise))))
-
 
 (defun i3--split-window (&optional window size side pixelwise)
   "Overriding `split-window' to use frames instead of window."
@@ -124,8 +109,31 @@ example:
       ;; return the new window
       new-window)))
 
-;; (advice-add 'split-window :override 'i3--split-window)
-(advice-add 'split-window :around #'i3-split-window)
+(defun i3--switch-to-frame (frame-or-window-id)
+  "Switch the focus to frame identified by FRAME-OR-WINDOW-ID."
+  (let ((window-id (or (and (frame-live-p frame-or-window-id)
+                            (- (string-to-number
+                                (frame-parameter frame-or-window-id 'window-id))
+                               4))
+                       frame-or-window-id)))
+    (i3-msg (concat "[id=\"" (int-to-string window-id) "\"]") "focus")))
+
+(defun i3--call-stack ()
+  "Return the list of function called.
+  example:
+  (defun bar () (i3--call-stack))
+  (defun foo () (bar))
+
+  (foo) ;; returns (command-execute call-interactively funcall-interactively eval-last-sexp elisp--eval-last-sexp eval bar foo)"
+  (let ((frames)
+        (frame)
+        (index 5))
+    (while (setq frame (backtrace-frame index))
+      (push frame frames)
+      (cl-incf index))
+    (mapcar 'cadr (cl-remove-if-not 'car frames))))
+
+
 
 ;; 2. delete-window
 
@@ -202,6 +210,13 @@ If I3-TREE is omitted, use the root tree (i.e., \"i3-msg -t get_tree\"), if VISI
            (->> i3-tree
                 (--map (i3--get-visible-window it visible-workspace))
                 -flatten)))))
+
+
+;; (advice-add 'split-window :override 'i3--split-window)
+(advice-add #'split-window :around #'i3-split-window)
+(advice-add #'delete-window :around #'i3-delete-window)
+(advice-add #'pop-to-buffer :around #'i3-pop-to-buffer)
+(advice-remove #'pop-to-buffer #'i3-pop-to-buffer)
 
 (defun i3-move-focus (direction)
   "Move focus in DIRECTION.  When error, move focus using i3's focus move mechanism."
