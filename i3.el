@@ -23,11 +23,12 @@
 
 (defvar i3--debug-buffer " *i3-debug*")
 
-(defun i3-cmd (&rest args)
+;;;###autoload
+(defun i3-msg (&rest args)
   "Run commands string with `i3-msg'.
 ARGS takes the form of list of string.
 examples:
-(i3-cmd '((\"resize\" \"set\" \"200\"))) => i3-msg resize set 200"
+(i3-msg '((\"resize\" \"set\" \"200\"))) => i3-msg resize set 200"
   (cl-letf (((symbol-function 'message) #'ignore))
     (make-process :name (car args)
                   :command `("i3-msg" ,@args)
@@ -97,7 +98,7 @@ example:
                            ;; case 3: size is not given, set it to -1
                            -1)))
     (i3--switch-to-frame (window-frame window))
-    (i3-cmd "split" (symbol-name how))
+    (i3-msg "split" (symbol-name how))
     (make-process :name "emacs-client"
                   :command `("emacsclient" "-c" "-n")
                   :buffer i3--debug-buffer)
@@ -109,16 +110,16 @@ example:
       (cond ( ; new window is below - move focus up
              (eq side 'below) (progn
                                 (setq new-window (selected-window))
-                                (i3-cmd "focus" "up")))
+                                (i3-msg "focus" "up")))
             ( ; new window is right - move focus left
              (eq side 'right) (progn
                                 (setq new-window (selected-window))
-                                (i3-cmd "focus" "left")))
+                                (i3-msg "focus" "left")))
             ;; now new window is above/left, which means the original window
             ;; is the below/right window. We need to move focus back and forth
             (t (setq new-window (car (window-list (next-frame))))))
       (when (> old-window-size 0)
-        (i3-cmd "resize" "set" axis (int-to-string old-window-size)))
+        (i3-msg "resize" "set" axis (int-to-string old-window-size)))
       ;; return the new window
       new-window)))
 
@@ -133,7 +134,8 @@ example:
          (fn (intern (concat "windmove-" direction))))
     (condition-case _
         (funcall fn)
-      (error (i3-cmd "focus" direction)))))
+      (error (i3-msg "focus" direction)))))
+
 
 (provide 'i3)
 ;;; i3.el ends here
