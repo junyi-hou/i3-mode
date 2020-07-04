@@ -183,6 +183,7 @@ examples:
 
 ;; 4. move focus
 
+;;;###autoload
 (defun i3-move-focus (direction)
   "Move focus in DIRECTION.  When error, move focus using i3's focus move mechanism."
   (interactive)
