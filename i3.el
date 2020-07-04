@@ -17,7 +17,12 @@
 
 (defcustom i3-function-should-use-window
   '(magit-display-buffer transient--show)
-  "A list of function where `i3-split-window' will use the original `split-window'."
+  "A list of function where `i3-split-window' will use the original `split-window'.
+This means commands that call any function in this list will split window within an emacs frame, whereas commands that does not call these functions will split frame in two x-windows.
+
+list of functions:
+`magit-display-buffer' - so all magit calls split window instead of frame
+`transient--show' - The current implementation moves frame focus. So as soon as transient creates a new frame, the frame will got kill immediately due to focus out. Put `transient--show' here will instruct transient to use window split which retains focus and allow transient to do its job."
   :type '(repeat function)
   :group 'i3)
 
@@ -26,8 +31,16 @@
 (define-minor-mode i3-mode
   "Delegate the window management role to i3wm"
   :global t
-  nil nil nil
-  )
+  :group 'i3
+  :lighter nil
+  (if i3-mode
+      (progn
+        (advice-add #'split-window :around #'i3-split-window)
+        (advice-add #'delete-window :around #'i3-delete-window)
+        (advice-add #'pop-to-buffer :around #'i3-pop-to-buffer))
+    (advice-remove #'split-window #'i3-split-window)
+    (advice-remove #'delete-window #'i3-delete-window)
+    (advice-remove #'pop-to-buffer #'i3-pop-to-buffer)))
 
 
 ;;; replacing window management with i3
@@ -216,11 +229,8 @@ If I3-TREE is omitted, use the root tree (i.e., \"i3-msg -t get_tree\"), if VISI
                 -flatten)))))
 
 
-;; (advice-add 'split-window :override 'i3--split-window)
-(advice-add #'split-window :around #'i3-split-window)
-(advice-add #'delete-window :around #'i3-delete-window)
-(advice-add #'pop-to-buffer :around #'i3-pop-to-buffer)
-(advice-remove #'pop-to-buffer #'i3-pop-to-buffer)
+
+;; 4. move focus
 
 (defun i3-move-focus (direction)
   "Move focus in DIRECTION.  When error, move focus using i3's focus move mechanism."
