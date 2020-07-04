@@ -61,7 +61,7 @@ examples:
                   :buffer i3--debug-buffer)))
 
 
-
+
 ;; 1. split window
 
 (defconst i3-split-axis
@@ -108,6 +108,7 @@ examples:
     ;; now move the focus to mimic split at different directions
     ;; and return the new window
     ;; FIXME: use the new emacsclient to call the following code?
+    ;; but then how to return windows?
     (sleep-for 0.1) ;; HACK: need to allow some time for emacsclient to finish loading
     (let ((new-window nil))
       (cond ( ; new window is below - move focus up
@@ -151,9 +152,10 @@ examples:
     (mapcar 'cadr (cl-remove-if-not 'car frames))))
 
 
-
+
 ;; 2. delete-window
 
+;;;###autoload
 (defun i3-delete-window (fn &optional window)
   "Allow `delete-window' to delete frame which WINDOW lives in if there WINDOW is the only window in that frame."
   (let ((frame (if (and window (windowp window))
@@ -164,9 +166,10 @@ examples:
       (funcall fn window))))
 
 
-
+
 ;; 3. pop-to-buffer
 
+;;;###autoload
 (defun i3-pop-to-buffer (fn buffer-or-name &optional action norecord)
   "If the frame containing BUFFER-OR-NAME is visible, goto that frame instead.  Otherwise call normal `pop-to-buffer'."
   (interactive (list (read-buffer "Pop to buffer: " (other-buffer))
