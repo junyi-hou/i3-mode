@@ -103,7 +103,7 @@ examples:
         ;; config
         (insert (concat "bindcode "
                         mod "+" code
-                        " exec --no-startup-id \"" cmd "\""))
+                        " exec --no-startup-id " cmd))
         ;; marker
         (insert (concat "  " i3-config-marker "\n"))))
 
@@ -111,13 +111,13 @@ examples:
   (i3-msg "reload"))
 
 (defun i3-revert-config ()
-  "Remove the focus move bindings from the i3 config"
+  "Remove the focus move bindings from the i3 config."
   (let* ((config-file (with-temp-buffer
                         (insert-file-contents (expand-file-name i3-config-file))
                         (buffer-string)))
          (reverted-config (--> config-file
                                (split-string it "\n" 'omit-nulls)
-                               (--remove (string-match-p i3-config-tag it) it)
+                               (--remove (string-match-p i3-config-marker it) it)
                                (string-join it "\n"))))
     (with-temp-buffer
       (insert reverted-config)
