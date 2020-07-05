@@ -41,7 +41,6 @@ A typical use case is to allow same set of key to move focus both across windows
   :type '(repeat list)
   :group 'i3)
 
-
 ;;;###autoload
 (define-minor-mode i3-mode
   "Delegate the window management role to i3wm"
@@ -87,6 +86,7 @@ examples:
   "Update i3 config to include focus move bindings defined in `i3-focus-move-bindings'."
   (with-temp-buffer
     (insert-file-contents (expand-file-name i3-config-file))
+    (goto-char (point-max))
     (dolist (binding i3-bindings)
       (let* ((mod (--> (car binding)
                        (event-modifiers it)
