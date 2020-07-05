@@ -1,0 +1,15 @@
+#!/bin/sh
+
+I3_COMMAND=$1
+I3_ARG=$2
+EMACS_KEYCODE=$3
+
+FOCUS_WINDOW_ID=$(xprop -root | awk '/_NET_ACTIVE_WINDOW\(WINDOW\)/{print $NF}')
+FOCUS_WINDOW_CLASS=$(xprop -id $FOCUS_WINDOW_ID | awk '/WM_CLASS/{print $NF}' | cut -d'"' -f2)
+
+if [[ $FOCUS_WINDOW_CLASS =~ ^[Ee]macs.* ]]; then
+    echo "(i3-integrated-key $EMACS_KEYCODE \"$I3_COMMAND\" \"$I3_ARG\")"
+    # emacsclient -e "(i3-integrated-key $EMACS_KEYCODE \"$I3_COMMAND\" \"$I3_ARG\")"
+else
+    i3-msg "$I3_COMMAND $I3_ARG"
+fi
