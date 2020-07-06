@@ -312,11 +312,9 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
 (defun i3--switch-to-frame (frame-or-window-id)
   "Switch the focus to frame identified by FRAME-OR-WINDOW-ID."
   (let ((window-id (or (and (frame-live-p frame-or-window-id)
-                            (- (string-to-number
-                                (frame-parameter frame-or-window-id 'window-id))
-                               4))
+                            (frame-parameter frame-or-window-id 'outer-window-id))
                        frame-or-window-id)))
-    (i3-msg (concat "[id=\"" (int-to-string window-id) "\"]") "focus")))
+    (i3-msg (concat "[id=\"" window-id "\"]") "focus")))
 
 (defun i3--call-stack ()
   "Return the list of function called.
