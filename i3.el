@@ -182,7 +182,8 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
     (i3--switch-to-frame (window-frame window))
     (i3-msg "split" (symbol-name how))
     (make-process :name "emacs-client"
-                  :command `("emacsclient" "-c" "-n")
+                  :command `("emacsclient" "-c" "-n" "-e"
+                             "(switch-to-buffer (car (buffer-list)))")
                   :buffer i3--debug-buffer)
 
     ;; now move the focus to mimic split at different directions
