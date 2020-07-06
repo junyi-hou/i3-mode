@@ -291,7 +291,7 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
     ;; and return the new window
     ;; FIXME: use the new emacsclient to call the following code?
     ;; but then how to return windows?
-    (sleep-for 0.1) ;; HACK: need to allow some time for emacsclient to finish loading
+    (sleep-for 0.2) ;; HACK: need to allow some time for emacsclient to finish loading
     (let ((new-window nil))
       (cond ( ; new window is below - move focus up
              (eq side 'below) (progn
