@@ -93,16 +93,14 @@ examples:
                        (-map 'symbol-name it)
                        (-map 's-capitalize it)
                        (s-join "+" it)))
-             (code (-> (car binding)
-                       ;; FIXME: why this discrepancy between
-                       ;; emacs keycode and x keycode?
-                       event-basic-type (- 62) int-to-string))
+             (key (-> (car binding)
+                      event-basic-type vector (key-description nil)))
              (cmd (concat "i3-call "
                           (cdr binding) " "
-                          (int-to-string (car binding)))))
+                          (-> (car binding) vector key-description))))
         ;; config
-        (insert (concat "bindcode "
-                        mod "+" code
+        (insert (concat "bindsym "
+                        mod "+" key
                         " exec --no-startup-id " cmd))
         ;; marker
         (insert (concat "  " i3-config-marker "\n"))))
@@ -125,14 +123,19 @@ examples:
   (i3-msg "reload"))
 
 ;;;###autoload
-(defun i3-integrated-key (keycode &rest i3-command)
-  (let* ((prefix (help-key-description (vector (this-command-keys)) nil))
-         (keysym (help-key-description (vector keycode) nil)))
-    (condition-case _
-        (progn
-          (call-interactively (key-binding (concat prefix " " keysym))))
-      (error (apply #'i3-msg i3-command)))))
+(defun i3-integrated-key (keysym &rest i3-command)
+  "Pass KEYSYM to the current buffer, if there is a command associated with KEYSYM, run the command interactively.  Otherwise call `i3-msg' with I3-COMMAND.
 
+Note that This function needs to consider prefix command. e.g., if one binds \"C-l\" to move focus to the right xwindow in i3wm, then prefixed \"C-l\" like \"C-c C-l\" also needs to get to emacs. In order to solve this problem, one must 1. make i3wm aware of the prefix state of emacs, and 2. find the appropriate command associated to the key sequence to run *in the appropriate buffer*.
+
+See also `i3-call' shell script for how to handle prefix commands in the shell process."
+  (let* ((prefixes (kbd (key-description (this-command-keys-vector))))
+         (keysym (kbd keysym)))
+    (condition-case _
+        (call-interactively (key-binding (or (and (string= prefix "") keysym)
+                                             (concat prefix keysym))))
+      (error (apply #'i3-msg i3-command))))
+  )
 
 
 ;;; replacing window management with i3
