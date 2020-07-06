@@ -3,8 +3,9 @@
 ;; Author: Junyi Hou <junyi.yi.hou@gmail.com>
 ;; Maintainer: Junyi Hou <junyi.yi.hou@gmail.com>
 ;; Version: 0.0.1
-;; Package-requires: ((emacs "27") (dash "2.17.0"))
+;; Package-requires: ((emacs "27") (dash "2.17.0") (s "1.12.0"))
 
+;;; code
 
 (require 'dash)
 (require 's)
