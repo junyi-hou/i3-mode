@@ -150,14 +150,16 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
 
 ;;;###autoload
 (defun i3-split-window (fn &optional window size side pixelwise)
-  (let ((callers (i3--call-stack)))
-    (if (cl-intersection callers i3-function-should-use-window)
+  (let ((callers (i3--call-stack))
+        (-compare-fn #'eq))
+    (if (-intersection callers i3-function-should-use-window)
         (funcall fn window size side pixelwise)
       (i3--split-window window size side pixelwise))))
 
 (defun i3--split-window (&optional window size side pixelwise)
   "Overriding `split-window' to use frames instead of window."
-  (let* ((side (cond
+  (let* ((window (or window (selected-window)))
+         (side (cond
 		            ((not side) 'below)
                 ((eq side 'up) 'above)
                 ((eq side 'down) 'below)
