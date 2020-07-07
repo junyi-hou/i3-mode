@@ -1,29 +1,16 @@
 * Introduction
 
-An ~emacs~ global minor mode that delegate window management to ~i3wm~.
+An ~emacs~ global minor mode that delegates window management to ~i3wm~.
+
+The program uses ~i3-msg~ to communicate with the window manager. It may not be compatible with other window manager.
 
 * Installation
 
-0. this package depends on [[https://github.com/davidshepherd7/frames-only-mode][frames-only-mode]], which modifies ~display-buffer-alist~ to use frames instead of windows to display buffer
-1. download ~i3.el~ to your ~load-path~ then
-   #+begin_src emacs-lisp :results silent
-     (require 'i3)
-   #+end_src
 
-One advantage of this package is allow you use an unified set of hotkeys to move window focus both within emacs, by calling ~windmove~ commands, and also across x-windows, by calling ~i3-msg focus~ commands. To use this feature, you need to
+* Idea
 
-1. put ~move-focus~ to somewhere in your ~PATH~
-2. update the i3 config file to allow
-   #+begin_src bash
-     bindsym YOUR-PREFERRED-KEY exec --no-startup-id "move-focus left"
-     bindsym YOUR-PREFERRED-KEY exec --no-startup-id "move-focus down"
-     bindsym YOUR-PREFERRED-KEY exec --no-startup-id "move-focus up"
-     bindsym YOUR-PREFERRED-KEY exec --no-startup-id "move-focus right"
-    #+end_src
+This package overrides ~split-window~ to split frames instead. Some modes/functions like ~transient~ do not play well with switching focus between frames. The customization option ~i3-function-should-split-window~ allows those modes/functions to continue using the original ~split-window~ to do their businesses. If there is another function that you want to split window rather than frame, you can add that function to ~i3-function-should-split-window~.
 
-* Usage
-Call ~i3-mode~
+* Similar Projects
 
-* TODO list
-- ~split-window-preferred-function~ is not respected since we do not use window anymore
-- how to deal with ~magit~ mode?
+[[https://github.com/davidshepherd7/frames-only-mode][frames-only-mode]] which changes splitting behavior by setting ~pop-up-frame~ to ~graphic-only~.
