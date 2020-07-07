@@ -16,7 +16,7 @@
   :group 'convenience
   :prefix "i3-")
 
-(defcustom i3-function-should-use-window
+(defcustom i3-function-should-split-window
   '(magit-display-buffer transient--show)
   "A list of function where `i3-split-window' will use the original `split-window'.
 This means commands that call any function in this list will split window within an emacs frame, whereas commands that does not call these functions will split frame in two x-windows.
@@ -234,14 +234,12 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
     (condition-case _
         (call-interactively (key-binding (or (and (string= prefix "") keysym)
                                              (concat prefix keysym))))
-      (error (apply #'i3-msg i3-command))))
-  )
+      (error (apply #'i3-msg i3-command)))))
 
 
 ;;; replacing window management with i3
 
 
-
 ;; 1. split window
 
 (defconst i3-split-axis
@@ -252,7 +250,7 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
 (defun i3-split-window (fn &optional window size side pixelwise)
   (let ((callers (i3--call-stack))
         (-compare-fn #'eq))
-    (if (-intersection callers i3-function-should-use-window)
+    (if (-intersection callers i3-function-should-split-window)
         (funcall fn window size side pixelwise)
       (i3--split-window window size side pixelwise))))
 
@@ -333,7 +331,6 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
     (mapcar 'cadr (cl-remove-if-not 'car frames))))
 
 
-
 ;; 2. delete-window
 
 ;;;###autoload
@@ -347,7 +344,6 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
       (funcall fn window))))
 
 
-
 ;; 3. pop-to-buffer
 
 ;;;###autoload
@@ -361,6 +357,48 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
       (funcall fn buffer-or-name action norecord))))
 
 
+
+;;; other utilities
+
+(defvar i3--launcher-debug-buffer " *i3-launcher*")
+
+;;;###autoload
+(defun i3-launcher (&optional completion-fn)
+  "Use a emacsclient and the provided completion framework to launch programs.
+To use this function, set keybindings in i3 config by using
+bindsym KEY exec --no-startup-id emacsclient -c -e \"(i3-launcher)\""
+  ;; make current window floating
+  (i3-msg (concat "[id=\"" (frame-parameter (selected-frame) 'outer-window-id) "\"]")
+          "floating" "enable")
+  (set-frame-size (selected-frame) 50 12)
+
+  ;; switch to a blank buffer
+  (switch-to-buffer "*scratch*")
+
+  (let* ((completion-fn (or completion-fn #'completing-read))
+         (program (funcall completion-fn "run:"
+                           (->> exec-path
+                                (--map (directory-files it nil "^[^._]"))
+                                -flatten
+                                delete-dups)))
+         (listified-program (s-split " " program)))
+    (make-process :name (car listified-program)
+                  :command listified-program
+                  :buffer i3--launcher-debug-buffer)
+    (delete-frame)))
+
+
+;;; installation
+
+;; put script to user-emacs-directory/bin/
+(cl-eval-when 'compile
+  (let* ((repo (file-name-as-directory (expand-file-name "")))
+         (script-name (expand-file-name "i3-call" repo))
+         (target (expand-file-name "bin/i3-call" user-emacs-directory)))
+    (unless (file-exists-p (expand-file-name "bin" user-emacs-directory))
+      (make-directory (expand-file-name "bin" user-emacs-directory)))
+    (when (file-exists-p target) (delete-file target))
+    (make-symbolic-link script-name target nil)))
 
 
 (provide 'i3)
