@@ -141,7 +141,7 @@ This function makes two changes to the i3 config file. First, it replaces the co
              (ug-bg (face-attribute 'font-lock-warning-face :background))
              (ug-fg (face-attribute 'font-lock-warning-face :foreground)))
 
-        (->> i3--bar-config
+        (->> bar-config
              (--map
               `(,@(-butlast it)
                 ,@(backquote
