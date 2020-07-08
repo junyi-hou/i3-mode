@@ -232,8 +232,8 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
   (let* ((prefixes (kbd (key-description (this-command-keys-vector))))
          (keysym (kbd keysym)))
     (condition-case _
-        (call-interactively (key-binding (or (and (string= prefix "") keysym)
-                                             (concat prefix keysym))))
+        (call-interactively (key-binding (or (and (string= prefixes "") keysym)
+                                             (concat prefixes keysym))))
       (error (apply #'i3-msg i3-command)))))
 
 
