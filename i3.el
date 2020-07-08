@@ -42,6 +42,11 @@ A typical use case is to allow same set of key to move focus both across windows
   :type '(repeat list)
   :group 'i3)
 
+(defcustom i3-update-config-on-the-go nil
+  "Non-nil means dynamically update i3 config file when calling `i3-mode'."
+  :type 'boolean
+  :group 'i3)
+
 ;;;###autoload
 (define-minor-mode i3-mode
   "Delegate the window management role to i3wm"
@@ -54,12 +59,17 @@ A typical use case is to allow same set of key to move focus both across windows
         (advice-add #'delete-window :around #'i3-delete-window)
         (advice-add #'pop-to-buffer :around #'i3-pop-to-buffer)
 
-        (i3-update-config))
+        (when i3-update-config-on-the-go
+          (i3-update-config)
+          ;; in case emacs exit without turning off i3
+          (add-hook 'kill-emacs-hook #'i3-revert-config)))
     (advice-remove #'split-window #'i3-split-window)
     (advice-remove #'delete-window #'i3-delete-window)
     (advice-remove #'pop-to-buffer #'i3-pop-to-buffer)
-
-    (i3-revert-config)))
+    (when i3-update-config-on-the-go
+      (i3-revert-config)
+      (remove-hook 'kill-emacs-hook #'i3-revert-config)
+      (i3-revert-config))))
 
 
 ;; general IPC
@@ -83,6 +93,7 @@ examples:
 (defvar i3--config nil
   "Internal variable save the unmodified i3 config")
 
+;;;###autoload
 (defun i3-update-config ()
   "Update i3 config from `i3-config-file'.
 This function makes two changes to the i3 config file. First, it replaces the colorscheme of i3 and i3 bars (if any) to the current emacs scheme. Second, it adds the key binding defined in `i3-bindings'.  The old config is save to `i3--config', which can be reverted by invoking `i3-revert-config'."
@@ -102,6 +113,7 @@ This function makes two changes to the i3 config file. First, it replaces the co
 
   (i3-msg "reload"))
 
+;;;###autoload
 (defun i3-revert-config ()
   "Remove the focus move bindings from the i3 config."
   (with-temp-buffer
