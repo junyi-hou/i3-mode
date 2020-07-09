@@ -245,11 +245,15 @@ Note that This function needs to consider prefix command. e.g., if one binds \"C
 
 See also `i3-call' shell script for how to handle prefix commands in the shell process."
   (let* ((prefixes (kbd (key-description (this-command-keys-vector))))
-         (keysym (kbd keysym)))
+         (keysym (kbd keysym))
+         (buf (car (buffer-list))))
     (condition-case _
-        (call-interactively (key-binding (or (and (string= prefixes "") keysym)
-                                             (concat prefixes keysym))))
-      (error (apply #'i3-msg i3-command)))))
+        (progn
+          (switch-to-buffer buf)
+          (call-interactively (key-binding (or (and (string= prefixes "") keysym)
+                                               (concat prefixes keysym)))))
+      (error (progn
+               (apply #'i3-msg i3-command))))))
 
 
 ;;; replacing window management with i3

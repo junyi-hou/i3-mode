@@ -8,7 +8,7 @@ FOCUS_WINDOW_ID=$(xprop -root | awk '/_NET_ACTIVE_WINDOW\(WINDOW\)/{print $NF}')
 FOCUS_WINDOW_CLASS=$(xprop -id $FOCUS_WINDOW_ID | awk '/WM_CLASS/{print $NF}' | cut -d'"' -f2)
 
 if [[ $FOCUS_WINDOW_CLASS =~ ^[Ee]macs.* ]]; then
-    emacsclient -e "(progn (switch-to-buffer (car (buffer-list))) (i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\"))"
+    emacsclient -e "(i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\")"
 else
     i3-msg "$I3_COMMAND $I3_ARG"
 fi
