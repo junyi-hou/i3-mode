@@ -16,7 +16,21 @@ Highlight:
 
 ** Installation
 
-TODO
+- ~use-package~ and ~straight.el~:
+  #+begin_src emacs-lisp
+    (use-package i3-mode
+      :straight (i3-mode :repo "junyi-hou/i3-mode" :host github
+                         :files ("i3.el" "i3-call"))
+      :init
+      (i3-mode 1))
+  #+end_src
+This automatically put ~i3-call~ into ~EMACS-CONFIG/bin/~, usually ~~/.emacs.d/bin~. Make sure this is in your ~PATH~ variable.
+- manual installation:
+  copy ~i3-mode.el~ to your ~load-path~ and ~i3-call~ to your ~PATH~, then
+  #+begin_src emacs-lisp
+    (require 'i3-mode)
+    (i3-mode 1)
+  #+end_src
 
 * Idea
 
