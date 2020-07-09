@@ -1,4 +1,4 @@
-;;; i3.el --- i3 compatibility mode -*- lexical-binding: t; -*-
+;;; i3-mode.el --- i3 compatibility mode -*- lexical-binding: t; -*-
 
 ;; Author: Junyi Hou <junyi.yi.hou@gmail.com>
 ;; Maintainer: Junyi Hou <junyi.yi.hou@gmail.com>
@@ -246,7 +246,7 @@ Note that This function needs to consider prefix command. e.g., if one binds \"C
 See also `i3-call' shell script for how to handle prefix commands in the shell process."
   (let* ((prefixes (kbd (key-description (this-command-keys-vector))))
          (keysym (kbd keysym))
-         (buf (car (buffer-list))))
+         (buf (car (buffer-list (selected-frame)))))
     (condition-case _
         (progn
           (switch-to-buffer buf)
@@ -420,5 +420,5 @@ bindsym KEY exec --no-startup-id emacsclient -c -e \"(i3-launcher)\""
     (make-symbolic-link script-name target nil)))
 
 
-(provide 'i3)
-;;; i3.el ends here
+(provide 'i3-mode)
+;;; i3-mode.el ends here
