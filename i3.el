@@ -59,6 +59,9 @@ A typical use case is to allow same set of key to move focus both across windows
         (advice-add #'delete-window :around #'i3-delete-window)
         (advice-add #'pop-to-buffer :around #'i3-pop-to-buffer)
 
+        (unless server-process
+          (server-start))
+
         (when i3-update-config-on-the-go
           (i3-update-config)
           ;; in case emacs exit without turning off i3
