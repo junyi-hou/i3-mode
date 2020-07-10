@@ -38,27 +38,36 @@ This automatically put ~i3-call~ into ~EMACS-CONFIG/bin/~, usually ~~/.emacs.d/b
 
 This package overrides ~split-window~ to split frames instead. Some modes/functions like ~transient~ do not play well with switching focus between frames. The customization option ~i3-function-should-split-window~ allows those modes/functions to continue using the original ~split-window~ to do their businesses. If there is another function that you want to split window rather than frame, you can add that function to ~i3-function-should-split-window~.
 
-** Key binding
-
-Window managers intercept key events before it can reach ~emacs~. To circumvent this issue, I use a simple shell script ~i3-call~ to detect whether the focused x-window is an ~emacs~ window or not. If it is an ~emacs~ window, the key event is instead redirected to ~emacs~.
-
-The customization option ~i3-binding~ allows one to add arbitrary key bindings that are effective in both ~emacs~ and ~i3wm~. An example that I use is
-#+begin_src emacs-lisp
-  (setq i3-bindings 
-        '((?\C-l . "focus right")
-          (?\C-h . "focus left")
-          (?\C-k . "focus up")
-          (?\C-j . "focus down")))
-#+end_src
-which uses ~ctrl+[hjkl]~ to move window focus in ~i3wm~.
-
-** Config updating
+** Automatic Config Updating
 
 ~i3-mode~ has the ability to automatically modifies your ~i3wm~ config file. This includes
 - add key bindings according to the ~i3-bindings~ variable;
 - change the bar/client theme according to your ~emacs~ theme.
 
 The automatic config updating is still an experimental feature, it could mess up the ~i3wm~ config file if ~emacs~ is terminated unexpectedly. This option is, by default, set to ~nil~. If you want to use this feature, set ~i3-update-config-on-the-go~ to ~non-nil~.
+
+** Key binding
+
+TODO
+
+# Window managers intercept key events before it can reach ~emacs~. To circumvent this issue, I use a simple shell script ~i3-call~. It first detect whether the focused x-window is an ~emacs~ window or not. If it is an ~emacs~ window, the key event is instead redirected to ~emacs~. For example, the following setting
+# #+begin_src bash
+# bindsym Control+l exec --no-startup-id i3-call focus right C-l
+# bindsym Control+h exec --no-startup-id i3-call focus left C-h
+# bindsym Control+k exec --no-startup-id i3-call focus up C-k
+# bindsym Control+j exec --no-startup-id i3-call focus down C-j
+# #+end_src
+# instruct ~i3wm~ to use ~ctrl+[hjkl]~ when the focus window is not an ~emacs~ window.
+
+# If the automatic config updating option is turned on, the customization option ~i3-binding~ allows one to add arbitrary key bindings that are effective in both ~emacs~ and ~i3wm~. An example that I use is
+# #+begin_src emacs-lisp
+#   (setq i3-bindings 
+#         '((?\C-l . "focus right")
+#           (?\C-h . "focus left")
+#           (?\C-k . "focus up")
+#           (?\C-j . "focus down")))
+# #+end_src
+# which uses ~ctrl+[hjkl]~ to move window focus in ~i3wm~.
 
 * Similar Projects
 
