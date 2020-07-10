@@ -252,8 +252,7 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
           (switch-to-buffer buf)
           (call-interactively (key-binding (or (and (string= prefixes "") keysym)
                                                (concat prefixes keysym)))))
-      (error (progn
-               (apply #'i3-msg i3-command))))))
+      (error (apply #'i3-msg i3-command)))))
 
 
 ;;; replacing window management with i3
@@ -376,35 +375,6 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
       (funcall fn buffer-or-name action norecord))))
 
 
-
-;;; other utilities
-
-(defvar i3--launcher-debug-buffer " *i3-launcher*")
-
-;;;###autoload
-(defun i3-launcher (&optional completion-fn)
-  "Use a emacsclient and the provided completion framework to launch programs.
-To use this function, set keybindings in i3 config by using
-bindsym KEY exec --no-startup-id emacsclient -c -e \"(i3-launcher)\""
-  ;; make current window floating
-  (i3-msg (concat "[id=\"" (frame-parameter (selected-frame) 'outer-window-id) "\"]")
-          "floating" "enable")
-  (set-frame-size (selected-frame) 50 12)
-
-  ;; switch to a blank buffer
-  (switch-to-buffer "*scratch*")
-
-  (let* ((completion-fn (or completion-fn #'completing-read))
-         (program (funcall completion-fn "run:"
-                           (->> exec-path
-                                (--map (directory-files it nil "^[^._]"))
-                                -flatten
-                                delete-dups)))
-         (listified-program (s-split " " program)))
-    (make-process :name (car listified-program)
-                  :command listified-program
-                  :buffer i3--launcher-debug-buffer)
-    (delete-frame)))
 
 
 ;;; installation
