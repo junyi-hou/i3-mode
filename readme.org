@@ -12,7 +12,7 @@ Highlight:
 
 ** Dependencies
 - ~xprop~
-- ~i3wm~
+- ~i3wm~ or ~i3gaps~
 
 ** Installation
 
@@ -32,7 +32,7 @@ This automatically put ~i3-call~ into ~EMACS-CONFIG/bin/~, usually ~~/.emacs.d/b
     (i3-mode 1)
   #+end_src
 
-* Idea
+* The idea
 
 ** Using frame in lieu of window
 
@@ -51,6 +51,14 @@ The customization option ~i3-binding~ allows one to add arbitrary key bindings t
           (?\C-j . "focus down")))
 #+end_src
 which uses ~ctrl+[hjkl]~ to move window focus in ~i3wm~.
+
+** Config updating
+
+~i3-mode~ has the ability to automatically modifies your ~i3wm~ config file. This includes
+- add key bindings according to the ~i3-bindings~ variable;
+- change the bar/client theme according to your ~emacs~ theme.
+
+The automatic config updating is still an experimental feature, it could mess up the ~i3wm~ config file if ~emacs~ is terminated unexpectedly. This option is, by default, set to ~nil~. If you want to use this feature, set ~i3-update-config-on-the-go~ to ~non-nil~.
 
 * Similar Projects
 
