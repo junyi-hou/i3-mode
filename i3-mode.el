@@ -10,6 +10,7 @@
 (require 'dash)
 (require 's)
 (require 'cl-lib)
+(require 'server)
 
 (defgroup i3 nil
   "Customization group for `i3-mode'"
@@ -17,7 +18,7 @@
   :prefix "i3-")
 
 (defcustom i3-function-should-split-window
-  '(magit-display-buffer transient--show)
+  '(magit-display-buffer transient--show ediff-setup-windows-plain)
   "A list of function where `i3-split-window' will use the original `split-window'.
 This means commands that call any function in this list will split window within an emacs frame, whereas commands that does not call these functions will split frame in two x-windows.
 
@@ -58,8 +59,10 @@ A typical use case is to allow same set of key to move focus both across windows
         (advice-add #'split-window :around #'i3-split-window)
         (advice-add #'delete-window :around #'i3-delete-window)
         (advice-add #'pop-to-buffer :around #'i3-pop-to-buffer)
+        ;; TODO: figure out this
+        ;; (advice-add #'other-window :around #'i3-other-window)
 
-        (unless server-process
+        (unless (server-running-p)
           (server-start))
 
         (when i3-update-config-on-the-go
@@ -69,6 +72,8 @@ A typical use case is to allow same set of key to move focus both across windows
     (advice-remove #'split-window #'i3-split-window)
     (advice-remove #'delete-window #'i3-delete-window)
     (advice-remove #'pop-to-buffer #'i3-pop-to-buffer)
+    ;; (advice-remove #'other-window #'other-frame)
+
     (when i3-update-config-on-the-go
       (i3-revert-config)
       (remove-hook 'kill-emacs-hook #'i3-revert-config)
@@ -251,7 +256,8 @@ See also `i3-call' shell script for how to handle prefix commands in the shell p
         (progn
           (switch-to-buffer buf)
           (call-interactively (key-binding (or (and (string= prefixes "") keysym)
-                                               (concat prefixes keysym)))))
+                                               (concat prefixes keysym))))
+          (keyboard-quit))
       (error (apply #'i3-msg i3-command)))))
 
 
