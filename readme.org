@@ -1,32 +1,39 @@
 * Introduction
 
-An ~emacs~ global minor mode that delegates window management to ~i3wm~.
+A global minor mode that integrates window movement within and outside of
+~emacs~.
 
-The program uses ~i3-msg~ to communicate with the window manager. It may not be compatible with other window manager (although it is possible to adopt it to other window manager that offers command line control).
+The program uses ~i3-msg/swaymsg~ to communicate with ~i3/sway~. It may not be
+compatible with other window manager (although it is possible to adopt it to
+other window manager that offers command line control).
 
 Highlight:
-- Allowing key bindings to be effective in both ~emacs~ and ~i3~.
-- Automatically update i3 config files when turn on the mode. 
+- Allowing a key to be effective in both ~emacs~ and ~i3~.
 
 * Installation
 
 ** Dependencies
-- ~xprop~
-- ~i3wm~ or ~i3gaps~
+
+~xprop~ if uses ~i3wm~ or ~i3gaps~. ~jq~ if uses ~sway~.
+
+NOTE: to use ~i3-mode~, ~emacs~ must be running in ~server-mode~.
 
 ** Installation
 
 - ~use-package~ and ~straight.el~:
+
   #+begin_src emacs-lisp
     (use-package i3-mode
       :straight (i3-mode :repo "junyi-hou/i3-mode" :host github
-                         :files ("i3-mode.el" "i3-call"))
+                         :files ("i3-mode.el" "i3-call" "sway-call"))
       :init
       (i3-mode 1))
   #+end_src
-This automatically put ~i3-call~ into ~EMACS-CONFIG/bin/~, usually ~~/.emacs.d/bin~. Make sure this is in your ~PATH~ variable.
+
 - manual installation:
-  copy ~i3-mode.el~ to your ~load-path~ and ~i3-call~ to your ~PATH~, then
+  copy ~i3-mode.el~ to your ~load-path~ and ~i3-call~ ~sway-call~ to your
+  ~PATH~, then
+
   #+begin_src emacs-lisp
     (require 'i3-mode)
     (i3-mode 1)
@@ -34,45 +41,69 @@ This automatically put ~i3-call~ into ~EMACS-CONFIG/bin/~, usually ~~/.emacs.d/b
 
 * The idea
 
-** Using frame in lieu of window
+Window managers intercept key events before it can reach ~emacs~. To allow key
+events go to ~emacs~, I use a simple shell script ~i3-call~/~sway-call~. It
+first detect whether the focused window is an ~emacs~ window or not. If it is an
+~emacs~ window, the key event is will be sent to ~emacs~.
 
-This package overrides ~split-window~ to split frames instead. Some modes/functions like ~transient~ do not play well with switching focus between frames. The customization option ~i3-function-should-split-window~ allows those modes/functions to continue using the original ~split-window~ to do their businesses. If there is another function that you want to split window rather than frame, you can add that function to ~i3-function-should-split-window~.
+This trick is useful if one wants to bind keys in both the window manager and
+~emacs~. For example, I use ~C-<hjkl>~ to move window focus in ~emacs~. And
+before this package, I use ~S-<hjkl>~ to move focus in ~i3/sway~. This is
+clearly suboptimal for me, as I use two sets of keys to perform essentially the
+same function. ~i3-mode~ allows me to fix this by binding ~C-<hjkl>~ in both
+~i3/sway~ and ~emacs~:
 
-** Automatic Config Updating
+#+begin_src bash
+bindsym Control+l exec --no-startup-id i3-call focus right C-l
+bindsym Control+h exec --no-startup-id i3-call focus left C-h
+bindsym Control+k exec --no-startup-id i3-call focus up C-k
+bindsym Control+j exec --no-startup-id i3-call focus down C-j
+#+end_src
 
-~i3-mode~ has the ability to automatically modifies your ~i3wm~ config file. This includes
-- add key bindings according to the ~i3-bindings~ variable;
-- change the bar/client theme according to your ~emacs~ theme.
+which instructs ~i3~ to use ~C+<hjkl>~ to move focus when the current
+window is not ~emacs~. Otherwise, ~i3-call~ will pass ~C-<hjkl>~ to ~emacs~ by
+calling ~emacsclient -e (i3-integrated-key "C-k" "focus" "up")~.
 
-The automatic config updating is still an experimental feature, it could mess up the ~i3wm~ config file if ~emacs~ is terminated unexpectedly. This option is, by default, set to ~nil~. If you want to use this feature, set ~i3-update-config-on-the-go~ to ~non-nil~.
+* Usage
 
-** Key binding
+If the automatic config updating option is turned on, the customization option
+~i3-binding~ allows one to add arbitrary key bindings that are effective in both
+~emacs~ and ~i3wm~. An example that I use is
+#+begin_src emacs-lisp
+  (setq i3-bindings
+        '((?\C-l . "focus right")
+          (?\C-h . "focus left")
+          (?\C-k . "focus up")
+          (?\C-j . "focus down")))
+#+end_src
 
-TODO
+And I can append the script above to the ~i3/sway~ config file by using the
+following function.
 
-# Window managers intercept key events before it can reach ~emacs~. To circumvent this issue, I use a simple shell script ~i3-call~. It first detect whether the focused x-window is an ~emacs~ window or not. If it is an ~emacs~ window, the key event is instead redirected to ~emacs~. For example, the following setting
-# #+begin_src bash
-# bindsym Control+l exec --no-startup-id i3-call focus right C-l
-# bindsym Control+h exec --no-startup-id i3-call focus left C-h
-# bindsym Control+k exec --no-startup-id i3-call focus up C-k
-# bindsym Control+j exec --no-startup-id i3-call focus down C-j
-# #+end_src
-# instruct ~i3wm~ to use ~ctrl+[hjkl]~ when the focus window is not an ~emacs~ window.
-
-# If the automatic config updating option is turned on, the customization option ~i3-binding~ allows one to add arbitrary key bindings that are effective in both ~emacs~ and ~i3wm~. An example that I use is
-# #+begin_src emacs-lisp
-#   (setq i3-bindings 
-#         '((?\C-l . "focus right")
-#           (?\C-h . "focus left")
-#           (?\C-k . "focus up")
-#           (?\C-j . "focus down")))
-# #+end_src
-# which uses ~ctrl+[hjkl]~ to move window focus in ~i3wm~.
-
-* Similar Projects
-
-[[https://github.com/davidshepherd7/frames-only-mode][frames-only-mode]] which changes splitting behavior by setting ~pop-up-frame~ to ~graphic-only~.
-
+#+begin_src emacs-lisp
+  (defun i3--key-binding-config (str)
+    "Append STR with the key bindings settings according to `i3-bindings' in i3 configuration format. Return the appended string"
+    (with-temp-buffer
+      ;; (insert str)
+      (let ((key-binding-string "\n"))
+        (dolist (binding i3-bindings)
+          (let* ((mod (--> (car binding)
+                        (event-modifiers it)
+                        (-map 'symbol-name it)
+                        (-map 's-capitalize it)
+                        (s-join "+" it)))
+                 (key (-> (car binding)
+                          event-basic-type vector (key-description nil)))
+                 (script (if (eq i3-flavor 'sway) "sway-call" "i3-call"))
+                 (cmd (concat script " "
+                              (cdr binding) " "
+                              (-> (car binding) vector key-description))))
+            (setq key-binding-string
+                  (concat key-binding-string
+                          "bindsym " mod "+" key " exec --no-startup-id " cmd "\n"))))
+        (insert key-binding-string))
+      (buffer-string)))
+#+end_src
 
 * Licenses
 
