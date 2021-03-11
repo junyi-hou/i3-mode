@@ -28,14 +28,9 @@
   :type 'string
   :group 'i3)
 
-(defcustom i3-bindings
-  '((?\C-l . "focus right")
-    (?\C-h . "focus left")
-    (?\C-k . "focus up")
-    (?\C-j . "focus down"))
-  "Key bindings that should be effective both in i3 and emacs.
-A typical use case is to allow same set of key to move focus both across windows within the same emacs frame and across x-windows."
-  :type '(repeat list)
+(defcustom i3-extra-config nil
+  "A list of extra settings that should be append to the end of `i3-config-file'. Each element can be either a string or a function with no argument and returns a string."
+  :type 'list
   :group 'i3)
 
 ;;;###autoload
@@ -47,13 +42,11 @@ A typical use case is to allow same set of key to move focus both across windows
 
   (if i3-mode
       (progn
-        (setq exec-path `(,@exec-path ,(expand-file-name ".local/bin/" (getenv "HOME"))))
         (i3--check-executables)
         (i3-update-config)
         (add-hook 'kill-emacs-hook #'i3-revert-config))
 
     (i3-revert-config)
-    (setq exec-path (butlast exec-path))
     (remove-hook 'kill-emacs-hook #'i3-revert-config)))
 
 (defun i3--check-executables ()
@@ -91,23 +84,26 @@ examples:
   "Return a con cell (file-symlink-origin . file-content) of the original `i3-config-file'.
 
 See docstring of `i3--config' for more information."
-  (cons (and (f-symlink-p i3-config-file) (file-truename i3-config-file))
+  (cons (and (f-symlink-p i3-config-file) (file-chase-links i3-config-file 1))
         (with-temp-buffer (insert-file-contents i3-config-file) (buffer-string))))
 
 (defun i3-update-config ()
   "Update `i3-config-file' to include the new key bindings defined in `i3-bindings'."
   ;; first save current config
   (setq i3--config (i3--save-original-config))
-
+  (f-delete i3-config-file)
   (with-temp-buffer
-    (-> (cdr i3--config)
-        i3--key-binding-config
-        insert)
+    (insert (cdr i3--config))
+    (dolist (config i3-extra-config)
+      (if (functionp config)
+          (insert (funcall config))
+        (insert config)))
     (write-file (expand-file-name i3-config-file)))
   (i3-msg "reload"))
 
 (defun i3-revert-config ()
   "Remove the focus move bindings from the i3 config."
+  (f-delete i3-config-file)
   (if (car i3--config)
       (f-symlink (car i3--config) i3-config-file)
     (with-temp-buffer
@@ -115,29 +111,6 @@ See docstring of `i3--config' for more information."
       (write-file i3-config-file)))
   (setq i3--config nil)
   (i3-msg "reload"))
-
-(defun i3--key-binding-config (str)
-  "Append STR with the key bindings settings according to `i3-bindings' in i3 configuration format. Return the appended string"
-  (with-temp-buffer
-    ;; (insert str)
-    (let ((key-binding-string "\n"))
-      (dolist (binding i3-bindings)
-        (let* ((mod (--> (car binding)
-                      (event-modifiers it)
-                      (-map 'symbol-name it)
-                      (-map 's-capitalize it)
-                      (s-join "+" it)))
-               (key (-> (car binding)
-                        event-basic-type vector (key-description nil)))
-               (script (if (eq i3-flavor 'sway) "sway-call" "i3-call"))
-               (cmd (concat script " "
-                            (cdr binding) " "
-                            (-> (car binding) vector key-description))))
-          (setq key-binding-string
-                (concat key-binding-string
-                        "bindsym " mod "+" key " exec --no-startup-id " cmd "\n"))))
-      (insert key-binding-string))
-    (buffer-string)))
 
 ;;;###autoload
 (defun i3-integrated-key (keysym &rest i3-command)

@@ -81,10 +81,9 @@ And I can append the script above to the ~i3/sway~ config file by using the
 following function.
 
 #+begin_src emacs-lisp
-  (defun i3--key-binding-config (str)
+  (defun i3--key-binding-config ()
     "Append STR with the key bindings settings according to `i3-bindings' in i3 configuration format. Return the appended string"
     (with-temp-buffer
-      ;; (insert str)
       (let ((key-binding-string "\n"))
         (dolist (binding i3-bindings)
           (let* ((mod (--> (car binding)
@@ -103,6 +102,8 @@ following function.
                           "bindsym " mod "+" key " exec --no-startup-id " cmd "\n"))))
         (insert key-binding-string))
       (buffer-string)))
+
+  (add-to-list 'i3-extra-config #'i3--key-binding-config)
 #+end_src
 
 * Licenses
