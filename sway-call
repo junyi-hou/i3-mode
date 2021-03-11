@@ -4,9 +4,9 @@ I3_COMMAND=$1
 I3_ARG=$2
 INPUT_KEYSYM=$3
 
-FOCUS_WINDOW = $(swaymsg -t get_tree | jq '.. | (.nodes? // empty)[] | select(.focused==true) | {app_id} '.app_id)
+FOCUS_WINDOW=$(swaymsg -t get_tree | jq '.. | (.nodes? // empty)[] | select(.focused==true) | {app_id} '.app_id)
 
-if [[ $FOCUS_WINDOW =~ ^[Em]macs ]]; then
+if [[ $FOCUS_WINDOW =~ ^[Ee]macs ]]; then
     emacsclient -e "(i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\")"
 else
     swaymsg "$I3_COMMAND $I3_ARG"
