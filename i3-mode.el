@@ -130,15 +130,11 @@ notice two observations:
 Therefore, I can first switch to the current buffer, then pass the event \"C-l\" to it."
   (let* ((prefixes (kbd (key-description (this-command-keys-vector))))
          (keysym (kbd keysym))
-         ;; HACK: I forget why this works...
+         (key-sequence (concat prefixes keysym))
          (buf (car (buffer-list (selected-frame)))))
-    (condition-case _
-        (progn
-          (switch-to-buffer buf)
-          (call-interactively (key-binding (or (and (string= prefixes "") keysym)
-                                               (concat prefixes keysym))))
-          (keyboard-quit))
-      (error (apply #'i3-msg i3-command)))))
+    (switch-to-buffer buf)
+    (or (ignore-error (call-interactively (key-binding key-sequence)))
+        (apply #'i3-msg i3-command))))
 
 
 ;;; installation
