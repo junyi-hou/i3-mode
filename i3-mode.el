@@ -43,24 +43,25 @@
   (if i3-mode
       (progn
         (i3--check-executables)
-        (if (eq i3-flavor 'sway)
-            (i3--check-sway-environmental-variables))
         (i3-update-config)
-        (add-hook 'kill-emacs-hook #'i3-revert-config))
+        (add-hook 'kill-emacs-hook #'i3-revert-config)
+        (add-hook 'server-after-make-frame-hook #'i3--check-sway-environment-variables))
 
     (i3-revert-config)
-    (remove-hook 'kill-emacs-hook #'i3-revert-config)))
+    (remove-hook 'kill-emacs-hook #'i3-revert-config)
+    (remove-hook 'server-after-make-frame-hook #'i3--check-sway-environment-variables)))
 
 (defun i3--check-executables ()
   "Check whether dependency is satisfied."
   (let* ((dep (if (eq i3-flavor 'sway) '("swaymsg" "jq" "sway-call") '("xprop" "i3-msg" "i3-call")))
          (pass (eval `(and ,@(mapcar 'executable-find dep)))))
     (unless pass
-      (user-error "exectable not found, please make sure %s are in your `exec-path'" (s-join ", " dep)))))
+      (user-error "Necessary executable not found, please make sure %s are in your `exec-path'" (s-join ", " dep)))))
 
-(defun i3--check-sway-environmental-variables ()
+(defun i3--check-sway-environment-variables ()
   "Check if SWAYSOCK is set.  If not, set it."
-  (unless (seq-find (lambda (str) (string-match-p "^SWAYSOCK" str)) process-environment)
+  (when (and (eq i3-flavor 'sway)
+             (not (seq-find (lambda (str) (string-match-p "^SWAYSOCK" str)) process-environment)))
     (let* ((pid (string-to-number (shell-command-to-string "pidof sway")))
            (uid (user-real-uid))
            (sway-sock (format "/run/user/%d/sway-ipc.%d.%d.sock" uid uid pid)))
