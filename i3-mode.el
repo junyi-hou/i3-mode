@@ -43,6 +43,8 @@
   (if i3-mode
       (progn
         (i3--check-executables)
+        (if (eq i3-flavor 'sway)
+            (i3--check-sway-environmental-variables))
         (i3-update-config)
         (add-hook 'kill-emacs-hook #'i3-revert-config))
 
@@ -55,6 +57,15 @@
          (pass (eval `(and ,@(mapcar 'executable-find dep)))))
     (unless pass
       (user-error "exectable not found, please make sure %s are in your `exec-path'" (s-join ", " dep)))))
+
+(defun i3--check-sway-environmental-variables ()
+  "Check if SWAYSOCK is set.  If not, set it."
+  (unless (seq-find (lambda (str) (string-match-p "^SWAYSOCK" str)) process-environment)
+    (let* ((pid (string-to-number (shell-command-to-string "pidof sway")))
+           (uid (user-real-uid))
+           (sway-sock (format "/run/user/%d/sway-ipc.%d.%d.sock" uid uid pid)))
+      (unless (= 0 pid)
+        (add-to-list 'process-environment (format "SWAYSOCK=%s" sway-sock))))))
 
 
 ;; general IPC
