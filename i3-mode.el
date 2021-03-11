@@ -77,39 +77,23 @@ examples:
 
 ;;; manipulate config file
 
-(defvar i3--config nil
-  "A cons cell whose car is the path to the symlink origin of the `i3-config-file' if it is a symlink, otherwise `nil'. The cdr of this variable is the content of `i3-config-file'.")
-
-(defun i3--save-original-config ()
-  "Return a con cell (file-symlink-origin . file-content) of the original `i3-config-file'.
-
-See docstring of `i3--config' for more information."
-  (cons (and (f-symlink-p i3-config-file) (file-chase-links i3-config-file 1))
-        (with-temp-buffer (insert-file-contents i3-config-file) (buffer-string))))
-
 (defun i3-update-config ()
   "Update `i3-config-file' to include the new key bindings defined in `i3-bindings'."
-  ;; first save current config
-  (setq i3--config (i3--save-original-config))
-  (f-delete i3-config-file)
-  (with-temp-buffer
-    (insert (cdr i3--config))
-    (dolist (config i3-extra-config)
-      (if (functionp config)
-          (insert (funcall config))
-        (insert config)))
-    (write-file (expand-file-name i3-config-file)))
-  (i3-msg "reload"))
+  (let ((i3-backup-file (format "%s.backup" i3-config-file)))
+    (f-move i3-config-file i3-backup-file)
+    (with-temp-buffer
+      (insert-file i3-backup-file)
+      (dolist (config i3-extra-config)
+        (if (functionp config)
+            (insert (funcall config))
+          (insert config)))
+      (write-file (expand-file-name i3-config-file)))
+    (i3-msg "reload")))
 
 (defun i3-revert-config ()
   "Remove the focus move bindings from the i3 config."
   (f-delete i3-config-file)
-  (if (car i3--config)
-      (f-symlink (car i3--config) i3-config-file)
-    (with-temp-buffer
-      (insert (cdr i3--config))
-      (write-file i3-config-file)))
-  (setq i3--config nil)
+  (f-move (format "%s.backup" i3-config-file) i3-config-file)
   (i3-msg "reload"))
 
 ;;;###autoload
