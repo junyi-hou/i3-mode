@@ -120,9 +120,14 @@ Note that This function needs to consider prefix command.  e.g., if one binds
 
 The second, and more tricky issue is that the \"C-l\" will need to get to the
 appropriate buffer.  This is not obvious, as when we press \"C-l\", it will first
-get captured by the window manager (meaning emacs is potentially losing focus
-now).  I use a hack that manually set the buffer as the `car' of `buffer-list'
-in the `selected-frame'."
+get captured by the window manager, which will call `emacsclient' and run this command.
+As a result, this command will be ran in *server* buffer. A hack I use to fix this is to
+notice two observations:
+
+1. if called without \"-c\" switch, `emacsclient' will use `selected-frame'.
+2. the current buffer sits on top (`car') of the `buffer-list'.
+
+Therefore, I can first switch to the current buffer, then pass the event \"C-l\" to it."
   (let* ((prefixes (kbd (key-description (this-command-keys-vector))))
          (keysym (kbd keysym))
          ;; HACK: I forget why this works...
