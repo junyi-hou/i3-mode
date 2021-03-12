@@ -92,16 +92,17 @@ examples:
 (defun i3-update-config ()
   "Update `i3-config-file' to include the new key bindings defined in `i3-bindings'."
   (let ((i3-backup-file (format "%s.backup" i3-config-file)))
-    (f-move i3-config-file i3-backup-file)
-    (with-temp-buffer
-      (insert-file-contents i3-backup-file)
-      (goto-char (point-max))
-      (dolist (config i3-extra-config)
-        (if (functionp config)
-            (insert (funcall config))
-          (insert config)))
-      (write-file (expand-file-name i3-config-file)))
-    (i3-msg "reload")))
+    (unless (f-exists-p i3-backup-file)
+      (f-move i3-config-file i3-backup-file)
+      (with-temp-buffer
+        (insert-file-contents i3-backup-file)
+        (goto-char (point-max))
+        (dolist (config i3-extra-config)
+          (if (functionp config)
+              (insert (funcall config))
+            (insert config)))
+        (write-file (expand-file-name i3-config-file)))
+      (i3-msg "reload"))))
 
 (defun i3-revert-config ()
   "Remove the focus move bindings from the i3 config."
