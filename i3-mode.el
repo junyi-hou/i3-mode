@@ -95,6 +95,7 @@ examples:
     (f-move i3-config-file i3-backup-file)
     (with-temp-buffer
       (insert-file i3-backup-file)
+      (goto-char (point-max))
       (dolist (config i3-extra-config)
         (if (functionp config)
             (insert (funcall config))
@@ -134,7 +135,7 @@ Therefore, I can first switch to the current buffer, then pass the event \"C-l\"
          (key-sequence (concat prefixes keysym))
          (buf (car (buffer-list (selected-frame)))))
     (switch-to-buffer buf)
-    (or (ignore-error (call-interactively (key-binding key-sequence)))
+    (or (ignore-error (call-interactively (key-binding key-sequence)) (keyboard-quit))
         (apply #'i3-msg i3-command))))
 
 
