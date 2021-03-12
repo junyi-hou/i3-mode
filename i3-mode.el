@@ -94,7 +94,7 @@ examples:
   (let ((i3-backup-file (format "%s.backup" i3-config-file)))
     (f-move i3-config-file i3-backup-file)
     (with-temp-buffer
-      (insert-file i3-backup-file)
+      (insert-file-contents i3-backup-file)
       (goto-char (point-max))
       (dolist (config i3-extra-config)
         (if (functionp config)
