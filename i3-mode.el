@@ -138,8 +138,10 @@ Therefore, I can first switch to the current buffer, then pass the event \"C-l\"
          (key-sequence (concat prefixes keysym))
          (buf (car (buffer-list (selected-frame)))))
     (switch-to-buffer buf)
-    (or (ignore-error (call-interactively (key-binding key-sequence)) (keyboard-quit))
-        (apply #'i3-msg i3-command))))
+    (if (commandp (key-binding key-sequence))
+        (condition-case _
+            (call-interactively (key-binding key-sequence))
+          (error (apply #'i3-msg i3-command))))))
 
 
 ;;; installation
