@@ -133,14 +133,17 @@ notice two observations:
 2. the current buffer sits on top (`car') of the `buffer-list'.
 
 Therefore, I can first switch to the current buffer, then pass the event \"C-l\" to it."
-  (let* ((prefixes (kbd (key-description (this-command-keys-vector))))
+  (let* ((prefixes (this-command-keys))
          (keysym (kbd keysym))
          (key-sequence (concat prefixes keysym))
          (buf (car (buffer-list (selected-frame)))))
     (switch-to-buffer buf)
     (if (commandp (key-binding key-sequence))
         (condition-case _
-            (call-interactively (key-binding key-sequence))
+            (progn
+              (call-interactively (key-binding key-sequence))
+              (unless (equal (this-command-keys) "")
+                (setq unread-command-events (listify-key-sequence "\C-g"))))
           (error (apply #'i3-msg i3-command))))))
 
 
