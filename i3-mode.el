@@ -76,7 +76,7 @@
 ;;;###autoload
 (defun i3-msg (&rest args)
   "Run commands string with `i3-msg' or `swaymsg' depend on the value of `i3-flavor'.
-ARGS takes the form of list of string.
+ARGS takes the form of list of string. Return nil.
 
 examples:
 (i3-msg '(\"resize\" \"set\" \"200\")) => i3-msg resize set 200"
@@ -84,7 +84,9 @@ examples:
             (cmd (if (eq i3-flavor 'sway) "swaymsg" "i3-msg")))
     (make-process :name (car args)
                   :command `(,cmd ,@args)
-                  :buffer i3--debug-buffer)))
+                  :coding 'utf-8
+                  :buffer i3--debug-buffer)
+    nil))
 
 
 ;;; manipulate config file
