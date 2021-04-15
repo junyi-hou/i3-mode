@@ -125,14 +125,20 @@ Note that This function needs to consider prefix command.  e.g., if one binds
 
 The second, and more tricky issue is that the \"C-l\" will need to get to the
 appropriate buffer.  This is not obvious, as when we press \"C-l\", it will first
-get captured by the window manager, which will call `emacsclient' and run this command.
-As a result, this command will be ran in *server* buffer. A hack I use to fix this is to
-notice two observations:
+get captured by the window manager, which will then call `emacsclient' and run
+this command. As a result, this command will be ran in the *server* buffer. A
+hack I use to fix this is to notice two observations:
 
 1. if called without \"-c\" switch, `emacsclient' will use `selected-frame'.
-2. the current buffer sits on top (`car') of the `buffer-list'.
+2. the current buffer sits on top (`car') of the `buffer-list' of the
+`selected-frame'.
 
-Therefore, I can first switch to the current buffer, then pass the event \"C-l\" to it."
+Therefore, I can first switch to the `car' of `buffer-list', then pass the event
+\"C-l\" to it.
+
+This method is not without drawbacks. For starter, the buffer currently displayed
+in emacs is not always the `car' of `buffer-list'. In this case, when C-l into a
+different frame or a different buffer than the one displayed before the switch."
   (let* ((prefixes (this-command-keys))
          (keysym (kbd keysym))
          (key-sequence (concat prefixes keysym))
