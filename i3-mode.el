@@ -23,32 +23,16 @@
   :type 'symbol
   :group 'i3)
 
-(defcustom i3-config-file (expand-file-name (format ".config/%s/config" (symbol-name i3-flavor)) (getenv "HOME"))
-  "Path to the i3 config file."
-  :type 'string
-  :group 'i3)
-
-(defcustom i3-extra-config nil
-  "A list of extra settings that should be append to the end of `i3-config-file'. Each element can be either a string or a function with no argument and returns a string."
-  :type 'list
-  :group 'i3)
-
 ;;;###autoload
 (define-minor-mode i3-mode
-  "Delegate the window management role to i3wm"
+  "Delegate the window management role to i3wm."
   :global t
   :group 'i3
   :lighter nil
-
   (if i3-mode
       (progn
         (i3--check-executables)
-        (i3-update-config)
-        (add-hook 'kill-emacs-hook #'i3-revert-config)
         (add-hook 'server-after-make-frame-hook #'i3--check-sway-environment-variables))
-
-    (i3-revert-config)
-    (remove-hook 'kill-emacs-hook #'i3-revert-config)
     (remove-hook 'server-after-make-frame-hook #'i3--check-sway-environment-variables)))
 
 (defun i3--check-executables ()
@@ -89,28 +73,6 @@ examples:
     nil))
 
 
-;;; manipulate config file
-
-(defun i3-update-config ()
-  "Update `i3-config-file' to include the new key bindings defined in `i3-bindings'."
-  (let ((i3-backup-file (format "%s.backup" i3-config-file)))
-    (unless (f-exists-p i3-backup-file)
-      (f-move i3-config-file i3-backup-file)
-      (with-temp-buffer
-        (insert-file-contents i3-backup-file)
-        (goto-char (point-max))
-        (dolist (config i3-extra-config)
-          (if (functionp config)
-              (insert (funcall config))
-            (insert config)))
-        (write-file (expand-file-name i3-config-file)))
-      (i3-msg "reload"))))
-
-(defun i3-revert-config ()
-  "Remove the focus move bindings from the i3 config."
-  (f-delete i3-config-file)
-  (f-move (format "%s.backup" i3-config-file) i3-config-file)
-  (i3-msg "reload"))
 
 ;;;###autoload
 (defun i3-integrated-key (keysym &rest i3-command)

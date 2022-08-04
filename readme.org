@@ -64,48 +64,6 @@ which instructs ~i3~ to use ~C+<hjkl>~ to move focus when the current
 window is not ~emacs~. Otherwise, ~i3-call~ will pass ~C-<hjkl>~ to ~emacs~ by
 calling ~emacsclient -e (i3-integrated-key "C-k" "focus" "up")~.
 
-* Usage
-
-If the automatic config updating option is turned on, the customization option
-~i3-binding~ allows one to add arbitrary key bindings that are effective in both
-~emacs~ and ~i3wm~. An example that I use is
-#+begin_src emacs-lisp
-  (setq i3-bindings
-        '((?\C-l . "focus right")
-          (?\C-h . "focus left")
-          (?\C-k . "focus up")
-          (?\C-j . "focus down")))
-#+end_src
-
-And I can append the script above to the ~i3/sway~ config file by using the
-following function.
-
-#+begin_src emacs-lisp
-  (defun i3--key-binding-config ()
-    "Append STR with the key bindings settings according to `i3-bindings' in i3 configuration format. Return the appended string"
-    (with-temp-buffer
-      (let ((key-binding-string "\n"))
-        (dolist (binding i3-bindings)
-          (let* ((mod (--> (car binding)
-                        (event-modifiers it)
-                        (-map 'symbol-name it)
-                        (-map 's-capitalize it)
-                        (s-join "+" it)))
-                 (key (-> (car binding)
-                          event-basic-type vector (key-description nil)))
-                 (script (if (eq i3-flavor 'sway) "sway-call" "i3-call"))
-                 (cmd (concat script " "
-                              (cdr binding) " "
-                              (-> (car binding) vector key-description))))
-            (setq key-binding-string
-                  (concat key-binding-string
-                          "bindsym " mod "+" key " exec --no-startup-id " cmd "\n"))))
-        (insert key-binding-string))
-      (buffer-string)))
-
-  (add-to-list 'i3-extra-config #'i3--key-binding-config)
-#+end_src
-
 * Licenses
 
 MIT
