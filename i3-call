@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 I3_COMMAND=$1
 I3_ARG=$2
@@ -8,7 +8,13 @@ FOCUS_WINDOW_ID=$(xprop -root | awk '/_NET_ACTIVE_WINDOW\(WINDOW\)/{print $NF}')
 FOCUS_WINDOW_CLASS=$(xprop -id $FOCUS_WINDOW_ID | awk '/WM_CLASS/{print $NF}' | cut -d'"' -f2)
 
 if [[ $FOCUS_WINDOW_CLASS =~ ^[Ee]macs.* ]]; then
-    emacsclient -e "(i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\")"
+    if [[ "$INPUT_KEYSYM" == "#'"* ]]; then
+        INVOKE="i3-process-key"
+    else
+        INVOKE="i3-integrated-key"
+        INPUT_KEYSYM="\"$INPUT_KEYSYM\""
+    fi
+    emacsclient -e "($INVOKE $INPUT_KEYSYM \"$I3_COMMAND\" \"$I3_ARG\")"
 else
     i3-msg "$I3_COMMAND $I3_ARG"
 fi

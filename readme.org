@@ -54,10 +54,13 @@ same function. ~i3-mode~ allows me to fix this by binding ~C-<hjkl>~ in both
 ~i3/sway~ and ~emacs~:
 
 #+begin_src bash
-bindsym Control+l exec --no-startup-id i3-call focus right C-l
-bindsym Control+h exec --no-startup-id i3-call focus left C-h
-bindsym Control+k exec --no-startup-id i3-call focus up C-k
-bindsym Control+j exec --no-startup-id i3-call focus down C-j
+  bindsym Control+l exec --no-startup-id i3-call focus right C-l
+  bindsym Control+h exec --no-startup-id i3-call focus left C-h
+  bindsym Control+k exec --no-startup-id i3-call focus up C-k
+  bindsym Control+j exec --no-startup-id i3-call focus down C-j
+
+  # or use direct call symbol
+  bindysm Mod4+a exec --no-startup-id i3-call focus left "#'windmove-left"
 #+end_src
 
 which instructs ~i3~ to use ~C+<hjkl>~ to move focus when the current

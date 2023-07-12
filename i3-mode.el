@@ -114,6 +114,17 @@ different frame or a different buffer than the one displayed before the switch."
                 (setq unread-command-events (listify-key-sequence "\C-g"))))
           (error (apply #'i3-msg i3-command))))))
 
+
+;;;###autoload
+(defun i3-process-key (fn &rest i3-command)
+  "Same as `i3-integrated-key', but invoke the function directly, instead of
+seeking it with keys, useful for isolated key-bindins between i3 and emacs."
+  (let ((buf (car (buffer-list (selected-frame)))))
+    (switch-to-buffer buf)
+    (condition-case _
+        (funcall fn)
+      (error (apply #'i3-msg i3-command)))))
+
 
 ;;; installation
 
