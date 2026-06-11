@@ -22,7 +22,8 @@ has_emacs_in_tree() {
 }
 
 if [[ $FOCUS_APP == "Emacs" ]] || has_emacs_in_tree "$FOCUS_PID"; then
-    emacsclient -e "(i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\")"
+    EMACS_SOCKET=$(lsof -p "$FOCUS_PID" -a -U 2>/dev/null | awk '/server/ {print $NF}' | head -1)
+    /Users/dad/.local/bin/emacsclient --socket-name "$EMACS_SOCKET" -e "(i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\")"
 else
     case "$I3_COMMAND" in
         focus|move)

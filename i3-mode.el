@@ -144,13 +144,22 @@ on buffer recency order."
          (key-sequence (concat prefixes keysym))
          (buf (window-buffer (frame-selected-window (selected-frame)))))
     (switch-to-buffer buf)
-    (if (commandp (key-binding key-sequence))
+    (let ((bound-cmd (key-binding key-sequence))
+          (windmove-cmd (when (equal (car i3-command) "focus")
+                          (alist-get (cadr i3-command) i3--direction-map nil nil #'equal))))
+      (cond
+       ((commandp bound-cmd)
         (condition-case _
             (progn
-              (call-interactively (key-binding key-sequence))
+              (call-interactively bound-cmd)
               (unless (equal (this-command-keys) "")
                 (setq unread-command-events (listify-key-sequence "\C-g"))))
-          (error (apply #'i3-msg i3-command))))))
+          (error (apply #'i3-msg i3-command))))
+       (windmove-cmd
+        (condition-case _
+            (call-interactively windmove-cmd)
+          (error (apply #'i3-msg i3-command))))
+       (t (apply #'i3-msg i3-command))))))
 
 (provide 'i3-mode)
 ;;; i3-mode.el ends here
