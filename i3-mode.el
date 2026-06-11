@@ -35,6 +35,8 @@
         (add-hook 'server-after-make-frame-hook #'i3--check-sway-environment-variables))
     (remove-hook 'server-after-make-frame-hook #'i3--check-sway-environment-variables)))
 
+(add-hook 'i3-mode-hook #'i3--check-keybindings)
+
 (defun i3--check-executables ()
   "Check whether dependency is satisfied."
   (let* ((dep (pcase i3-flavor
@@ -44,6 +46,53 @@
          (pass (eval `(and ,@(mapcar 'executable-find dep)))))
     (unless pass
       (user-error "Necessary executable not found, please make sure %s are in your `exec-path'" (s-join ", " dep)))))
+
+(defvar i3--direction-map
+  '(("right" . windmove-right)
+    ("left"  . windmove-left)
+    ("up"    . windmove-up)
+    ("down"  . windmove-down))
+  "Mapping from WM direction strings to expected windmove commands.")
+
+(defun i3--wm-config-file ()
+  "Return the default WM config path for the current `i3-flavor'."
+  (pcase i3-flavor
+    ('sway     (expand-file-name "~/.config/sway/config"))
+    ('aerospace (expand-file-name "~/.aerospace.toml"))
+    (_         (expand-file-name "~/.config/i3/config"))))
+
+(defun i3--parse-wm-bindings ()
+  "Return alist of (keysym . direction) pairs found in the WM config."
+  (let ((config (i3--wm-config-file))
+        (script (pcase i3-flavor
+                  ('sway      "sway-call")
+                  ('aerospace "aerospace-call")
+                  (_          "i3-call")))
+        bindings)
+    (when (file-readable-p config)
+      (with-temp-buffer
+        (insert-file-contents config)
+        (goto-char (point-min))
+        (while (re-search-forward
+                (format "%s focus \\(right\\|left\\|up\\|down\\) \\([^[:space:]'\"]+\\)"
+                        script)
+                nil t)
+          (push (cons (match-string 2) (match-string 1)) bindings))))
+    bindings))
+
+(defun i3--check-keybindings ()
+  "Warn if WM focus keybindings don't match Emacs windmove bindings."
+  (dolist (binding (i3--parse-wm-bindings))
+    (let* ((keysym    (car binding))
+           (direction (cdr binding))
+           (expected  (alist-get direction i3--direction-map nil nil #'equal))
+           (actual    (key-binding (kbd keysym))))
+      (unless (eq actual expected)
+        (display-warning
+         'i3
+         (format "Key %s: WM expects %s for \"focus %s\", but Emacs binds it to %s"
+                 keysym expected direction (or actual "nothing"))
+         :warning)))))
 
 (defun i3--check-sway-environment-variables ()
   "Check if SWAYSOCK is set.  If not, set it."
