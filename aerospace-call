@@ -1,0 +1,20 @@
+#!/bin/sh
+
+I3_COMMAND=$1
+I3_ARG=$2
+INPUT_KEYSYM=$3
+
+FOCUS_APP=$(aerospace list-windows --focused --json | jq -r '.[0]["app-name"]')
+
+if [[ $FOCUS_APP == "Emacs" ]]; then
+    emacsclient -e "(i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\")"
+else
+    case "$I3_COMMAND" in
+        focus|move)
+            aerospace "$I3_COMMAND" --direction "$I3_ARG"
+            ;;
+        *)
+            aerospace "$I3_COMMAND" "$I3_ARG"
+            ;;
+    esac
+fi

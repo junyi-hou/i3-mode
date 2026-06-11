@@ -3,18 +3,20 @@
 A global minor mode that integrates window movement within and outside of
 ~emacs~.
 
-The program uses ~i3-msg/swaymsg~ to communicate with ~i3/sway~. It may not be
-compatible with other window manager (although it is possible to adopt it to
-other window manager that offers command line control).
+The program uses ~i3-msg~, ~swaymsg~, or ~aerospace~ to communicate with the
+window manager.  Supported window managers: ~i3~, ~sway~ (Linux), and
+~Aerospace~ (macOS).
 
 Highlight:
-- Allowing a key to be effective in both ~emacs~ and ~i3~.
+- Allowing a key to be effective in both ~emacs~ and the window manager.
 
 * Installation
 
 ** Dependencies
 
-~xprop~ if uses ~i3wm~ or ~i3gaps~. ~jq~ if uses ~sway~.
+- ~i3~/~i3gaps~: ~xprop~
+- ~sway~: ~jq~
+- ~Aerospace~ (macOS): ~jq~
 
 NOTE: to use ~i3-mode~, ~emacs~ must be running in ~server-mode~.
 
@@ -25,14 +27,14 @@ NOTE: to use ~i3-mode~, ~emacs~ must be running in ~server-mode~.
   #+begin_src emacs-lisp
     (use-package i3-mode
       :straight (i3-mode :repo "junyi-hou/i3-mode" :host github
-                         :files ("i3-mode.el" "i3-call" "sway-call"))
+                         :files ("i3-mode.el" "i3-call" "sway-call" "aerospace-call"))
       :init
       (i3-mode 1))
   #+end_src
 
 - manual installation:
-  copy ~i3-mode.el~ to your ~load-path~ and ~i3-call~ ~sway-call~ to your
-  ~PATH~, then
+  copy ~i3-mode.el~ to your ~load-path~ and ~i3-call~, ~sway-call~, or
+  ~aerospace-call~ (as appropriate) to your ~PATH~, then
 
   #+begin_src emacs-lisp
     (require 'i3-mode)
@@ -63,6 +65,20 @@ bindsym Control+j exec --no-startup-id i3-call focus down C-j
 which instructs ~i3~ to use ~C+<hjkl>~ to move focus when the current
 window is not ~emacs~. Otherwise, ~i3-call~ will pass ~C-<hjkl>~ to ~emacs~ by
 calling ~emacsclient -e (i3-integrated-key "C-k" "focus" "up")~.
+
+For ~Aerospace~ on macOS, set ~i3-flavor~ to ~aerospace~ and configure
+keybindings in ~.aerospace.toml~:
+
+#+begin_src toml
+[mode.main.binding]
+ctrl-l = 'exec-and-forget aerospace-call focus right C-l'
+ctrl-h = 'exec-and-forget aerospace-call focus left C-h'
+ctrl-k = 'exec-and-forget aerospace-call focus up C-k'
+ctrl-j = 'exec-and-forget aerospace-call focus down C-j'
+#+end_src
+
+~aerospace-call~ translates the ~focus <direction>~ pair to
+~aerospace focus --direction <direction>~.
 
 * Licenses
 

@@ -19,7 +19,7 @@
   :prefix "i3-")
 
 (defcustom i3-flavor 'sway
-  "The window manager flavor, now supports `sway' and `i3'."
+  "The window manager flavor.  Supports `sway', `i3', and `aerospace'."
   :type 'symbol
   :group 'i3)
 
@@ -37,7 +37,10 @@
 
 (defun i3--check-executables ()
   "Check whether dependency is satisfied."
-  (let* ((dep (if (eq i3-flavor 'sway) '("swaymsg" "jq" "sway-call") '("xprop" "i3-msg" "i3-call")))
+  (let* ((dep (pcase i3-flavor
+                ('sway '("swaymsg" "jq" "sway-call"))
+                ('aerospace '("aerospace" "jq" "aerospace-call"))
+                (_ '("xprop" "i3-msg" "i3-call"))))
          (pass (eval `(and ,@(mapcar 'executable-find dep)))))
     (unless pass
       (user-error "Necessary executable not found, please make sure %s are in your `exec-path'" (s-join ", " dep)))))
@@ -59,18 +62,28 @@
 
 ;;;###autoload
 (defun i3-msg (&rest args)
-  "Run commands string with `i3-msg' or `swaymsg' depend on the value of `i3-flavor'.
-ARGS takes the form of list of string. Return nil.
+  "Run ARGS with `i3-msg', `swaymsg', or `aerospace' based on `i3-flavor'.
+ARGS is a list of strings.  Returns nil.
 
-examples:
-(i3-msg '(\"resize\" \"set\" \"200\")) => i3-msg resize set 200"
-  (cl-letf (((symbol-function 'message) #'ignore)
-            (cmd (if (eq i3-flavor 'sway) "swaymsg" "i3-msg")))
-    (make-process :name (car args)
-                  :command `(,cmd ,@args)
-                  :coding 'utf-8
-                  :buffer i3--debug-buffer)
-    nil))
+For `aerospace', `focus' and `move' commands are translated to use
+the --direction flag: (\"focus\" \"right\") => aerospace focus --direction right."
+  (cl-letf (((symbol-function 'message) #'ignore))
+    (let* ((cmd (pcase i3-flavor
+                  ('sway "swaymsg")
+                  ('aerospace "aerospace")
+                  (_ "i3-msg")))
+           (translated-args
+            (if (eq i3-flavor 'aerospace)
+                (pcase args
+                  (`(,(and c (or "focus" "move")) ,dir . ,rest)
+                   `(,c "--direction" ,dir ,@rest))
+                  (_ args))
+              args)))
+      (make-process :name (car args)
+                    :command `(,cmd ,@translated-args)
+                    :coding 'utf-8
+                    :buffer i3--debug-buffer)
+      nil)))
 
 
 
@@ -106,7 +119,7 @@ on buffer recency order."
 ;; install script to ~/.local/bin/
 (cl-eval-when 'compile
   (let* ((repo (file-name-as-directory (expand-file-name "")))
-         (scripts '("i3-call" "sway-call"))
+         (scripts '("i3-call" "sway-call" "aerospace-call"))
          (target-directory (expand-file-name ".local/bin/" (getenv "HOME"))))
     (unless (file-exists-p target-directory)
       (make-directory target-directory))
