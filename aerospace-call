@@ -5,8 +5,23 @@ I3_ARG=$2
 INPUT_KEYSYM=$3
 
 FOCUS_APP=$(aerospace list-windows --focused --json | jq -r '.[0]["app-name"]')
+FOCUS_PID=$(osascript -e 'tell application "System Events"
+    set frontApp to first process whose frontmost is true
+    return unix id of frontApp
+end tell' 2>/dev/null)
 
-if [[ $FOCUS_APP == "Emacs" ]]; then
+has_emacs_in_tree() {
+    local pid="$1"
+    local children
+    children=$(pgrep -P "$pid" 2>/dev/null) || return 1
+    for child in $children; do
+        ps -p "$child" -o comm= 2>/dev/null | grep -q 'emacs' && return 0
+        has_emacs_in_tree "$child" && return 0
+    done
+    return 1
+}
+
+if [[ $FOCUS_APP == "Emacs" ]] || has_emacs_in_tree "$FOCUS_PID"; then
     emacsclient -e "(i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\")"
 else
     case "$I3_COMMAND" in

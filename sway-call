@@ -4,9 +4,22 @@ I3_COMMAND=$1
 I3_ARG=$2
 INPUT_KEYSYM=$3
 
-FOCUS_APP=$(swaymsg -t get_tree | jq -r 'first(.. | (.nodes? // empty)[] | select(.focused==true)) | .app_id')
+FOCUS_INFO=$(swaymsg -t get_tree | jq 'first(.. | (.nodes? // empty)[] | select(.focused==true)) | {app_id, pid: .pid}')
+FOCUS_APP=$(echo "$FOCUS_INFO" | jq -r '.app_id')
+FOCUS_PID=$(echo "$FOCUS_INFO" | jq -r '.pid')
 
-if [[ $FOCUS_APP == "emacs" ]]; then
+has_emacs_in_tree() {
+    local pid="$1"
+    local children
+    children=$(pgrep -P "$pid" 2>/dev/null) || return 1
+    for child in $children; do
+        ps -p "$child" -o comm= 2>/dev/null | grep -q 'emacs' && return 0
+        has_emacs_in_tree "$child" && return 0
+    done
+    return 1
+}
+
+if [[ $FOCUS_APP == "emacs" ]] || has_emacs_in_tree "$FOCUS_PID"; then
     emacsclient -e "(i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\")"
 else
     swaymsg "$I3_COMMAND $I3_ARG"
