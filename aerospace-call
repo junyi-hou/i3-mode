@@ -4,25 +4,40 @@ I3_COMMAND=$1
 I3_ARG=$2
 INPUT_KEYSYM=$3
 
-FOCUS_APP=$(aerospace list-windows --focused --json | jq -r '.[0]["app-name"]')
+FOCUSED_WINDOW=$(aerospace list-windows --focused --json)
+FOCUS_APP=$(echo "$FOCUSED_WINDOW" | jq -r '.[0]["app-name"]')
+FOCUS_TITLE=$(echo "$FOCUSED_WINDOW" | jq -r '.[0]["window-title"]')
 FOCUS_PID=$(osascript -e 'tell application "System Events"
     set frontApp to first process whose frontmost is true
     return unix id of frontApp
 end tell' 2>/dev/null)
 
-has_emacs_in_tree() {
+find_emacs_in_tree() {
     local pid="$1"
     local children
     children=$(pgrep -P "$pid" 2>/dev/null) || return 1
     for child in $children; do
-        ps -p "$child" -o comm= 2>/dev/null | grep -q 'emacs' && return 0
-        has_emacs_in_tree "$child" && return 0
+        if ps -p "$child" -o comm= 2>/dev/null | grep -q 'emacs'; then
+            echo "$child"
+            return 0
+        fi
+        local found
+        found=$(find_emacs_in_tree "$child") && { echo "$found"; return 0; }
     done
     return 1
 }
 
-if [[ $FOCUS_APP == "Emacs" ]] || has_emacs_in_tree "$FOCUS_PID"; then
-    EMACS_SOCKET=$(lsof -p "$FOCUS_PID" -a -U 2>/dev/null | awk '/server/ {print $NF}' | head -1)
+EMACS_PID=""
+if [[ $FOCUS_APP == "Emacs" ]]; then
+    EMACS_PID="$FOCUS_PID"
+elif [[ $FOCUS_TITLE == emacs* ]]; then
+    EMACS_PID=$(ps -A -o pid=,tty=,comm= | awk '$3 ~ /\/[Ee]macs$/ && $2 != "??" {print $1; exit}')
+else
+    EMACS_PID=$(find_emacs_in_tree "$FOCUS_PID")
+fi
+
+if [[ -n "$EMACS_PID" ]]; then
+    EMACS_SOCKET=$(lsof -p "$EMACS_PID" -a -U 2>/dev/null | awk '/server/ {print $NF}' | head -1)
     /Users/dad/.local/bin/emacsclient --socket-name "$EMACS_SOCKET" -e "(i3-integrated-key \"$INPUT_KEYSYM\" \"$I3_COMMAND\" \"$I3_ARG\")"
 else
     case "$I3_COMMAND" in

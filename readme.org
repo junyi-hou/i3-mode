@@ -41,6 +41,43 @@ NOTE: to use ~i3-mode~, ~emacs~ must be running in ~server-mode~.
     (i3-mode 1)
   #+end_src
 
+* How ~aerospace-call~ detects Emacs
+
+~aerospace-call~ supports both GUI Emacs and terminal Emacs (~emacs -nw~) running
+inside a terminal emulator.
+
+** GUI Emacs
+
+When the focused app is ~Emacs~, ~aerospace list-windows~ reports ~app-name:
+"Emacs"~ and ~FOCUS_PID~ is the Emacs process PID directly.
+
+** Terminal Emacs (~emacs -nw~)
+
+Terminal emulators like Ghostty re-parent their shell sessions to ~launchd~
+(PID 1) rather than keeping them as children of the terminal process. This means
+process-tree traversal from the terminal's PID cannot find Emacs.
+
+Instead, ~aerospace-call~ reads the focused window's ~window-title~ from
+~aerospace list-windows~. When Emacs runs with ~-nw~, the terminal sets its title
+to ~emacs -nw~. If the title starts with ~emacs~, the script finds the Emacs PID
+with:
+
+#+begin_src sh
+ps -A -o pid=,tty=,comm= | awk '$3 ~ /\/[Ee]macs$/ && $2 != "??" {print $1; exit}'
+#+end_src
+
+The ~comm~ field holds the full binary path, so the pattern ~\/[Ee]macs$~ matches
+~/Applications/Emacs.app/Contents/MacOS/Emacs~ while excluding Emacs subprocesses
+(e.g. ~hexl~) whose paths contain ~Emacs.app~ but do not end with ~Emacs~. The
+~$2 != "??"~ guard excludes GUI-mode Emacs instances that have no controlling
+terminal.
+
+** Fallback
+
+If neither condition matches, ~aerospace-call~ falls back to walking the process
+tree from the terminal's PID, which works for terminal emulators that do keep
+their shell sessions as child processes.
+
 * The idea
 
 Window managers intercept key events before it can reach ~emacs~. To allow key
