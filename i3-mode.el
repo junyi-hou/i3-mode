@@ -112,22 +112,13 @@
 ;;;###autoload
 (defun i3-msg (&rest args)
   "Run ARGS with `i3-msg', `swaymsg', or `aerospace' based on `i3-flavor'.
-ARGS is a list of strings.  Returns nil.
-
-For `aerospace', `focus' and `move' commands are translated to use
-the --direction flag: (\"focus\" \"right\") => aerospace focus --direction right."
+ARGS is a list of strings.  Returns nil."
   (cl-letf (((symbol-function 'message) #'ignore))
     (let* ((cmd (pcase i3-flavor
                   ('sway "swaymsg")
                   ('aerospace "aerospace")
                   (_ "i3-msg")))
-           (translated-args
-            (if (eq i3-flavor 'aerospace)
-                (pcase args
-                  (`(,(and c (or "focus" "move")) ,dir . ,rest)
-                   `(,c "--direction" ,dir ,@rest))
-                  (_ args))
-              args)))
+           (translated-args args))
       (make-process :name (car args)
                     :command `(,cmd ,@translated-args)
                     :coding 'utf-8

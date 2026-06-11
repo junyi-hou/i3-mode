@@ -26,7 +26,7 @@ if [[ $FOCUS_APP == "Emacs" ]] || has_emacs_in_tree "$FOCUS_PID"; then
 else
     case "$I3_COMMAND" in
         focus|move)
-            aerospace "$I3_COMMAND" --direction "$I3_ARG"
+            aerospace "$I3_COMMAND" "$I3_ARG"
             ;;
         *)
             aerospace "$I3_COMMAND" "$I3_ARG"
