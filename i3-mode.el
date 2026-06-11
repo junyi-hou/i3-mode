@@ -9,7 +9,6 @@
 
 (require 'dash)
 (require 's)
-(require 'f)
 (require 'cl-lib)
 (require 'server)
 
@@ -152,23 +151,6 @@ on buffer recency order."
               (unless (equal (this-command-keys) "")
                 (setq unread-command-events (listify-key-sequence "\C-g"))))
           (error (apply #'i3-msg i3-command))))))
-
-
-;;; installation
-
-;; install script to ~/.local/bin/
-(cl-eval-when 'compile
-  (let* ((repo (file-name-as-directory (expand-file-name "")))
-         (scripts '("i3-call" "sway-call" "aerospace-call"))
-         (target-directory (expand-file-name ".local/bin/" (getenv "HOME"))))
-    (unless (file-exists-p target-directory)
-      (make-directory target-directory))
-
-    (dolist (script scripts)
-      (let ((target (format "%s%s" target-directory script)))
-        (when (f-exists-p target)
-          (delete-file target))
-        (f-symlink (expand-file-name script) target)))))
 
 (provide 'i3-mode)
 ;;; i3-mode.el ends here
