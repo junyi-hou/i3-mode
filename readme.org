@@ -10,7 +10,172 @@ window manager.  Supported window managers: ~i3~, ~sway~ (Linux), and
 Highlight:
 - Allowing a key to be effective in both ~emacs~ and the window manager.
 
-* Installation
+* Archived - New Approach
+
+This package is archived.  The approach it implements - using a shell script
+(~i3-call~, ~sway-call~, ~aerospace-call~) invoked by the window manager to
+dispatch key events to Emacs - has been superseded by a cleaner architecture
+that lives entirely in user configuration without requiring an Emacs server or
+a standalone dispatch script.
+
+The new setup achieves the same goal: ~C-hjkl~ navigates seamlessly across
+Emacs windows, terminal splits, and native OS windows as if they were all part
+of one tiling workspace.  See [[https://github.com/junyi-hou/dotfiles-v2]] for
+the full configuration.
+
+** The New Architecture
+
+Three tools divide responsibility by context:
+
+| Tool        | Handles                                   | Keybinding listened |
+|-------------+-------------------------------------------+---------------------|
+| Karabiner   | Dispatch / gating                         | ~C-hjkl~ (input)    |
+| Aerospace   | Native macOS window focus                 | ~Alt-hjkl~          |
+| Kitty       | Terminal split focus vs. window focus     | ~C-hjkl~            |
+| Emacs       | Emacs pane focus, fallback to Aerospace   | ~C-hjkl~            |
+
+*** Karabiner - the gatekeeper
+
+Karabiner remaps ~C-hjkl~ to ~Alt-hjkl~ for every application *except* Emacs
+and Kitty.  Those two receive ~C-hjkl~ untouched so they can handle it
+themselves.
+
+#+begin_src json
+{
+  "type": "basic",
+  "from": { "key_code": "h", "modifiers": { "mandatory": ["control"] } },
+  "to":   [{ "key_code": "h", "modifiers": ["option"] }],
+  "conditions": [{
+    "type": "frontmost_application_unless",
+    "bundle_identifiers": ["^org\\.gnu\\.Emacs$", "^net\\.kovidgoyal\\.kitty$"]
+  }]
+}
+#+end_src
+
+For any app that is not Emacs or Kitty (browsers, Slack, etc.) the keypress
+becomes ~Alt-hjkl~ and Aerospace picks it up immediately.
+
+*** Aerospace - native window manager
+
+Aerospace binds ~Alt-hjkl~ to focus adjacent windows and warp the mouse
+cursor to the new window center:
+
+#+begin_src toml
+[mode.main.binding]
+alt-h = ['focus left',  'move-mouse window-lazy-center']
+alt-j = ['focus down',  'move-mouse window-lazy-center']
+alt-k = ['focus up',    'move-mouse window-lazy-center']
+alt-l = ['focus right', 'move-mouse window-lazy-center']
+#+end_src
+
+*** Kitty - terminal pane router
+
+Kitty receives raw ~C-hjkl~ (Karabiner did not remap it for Kitty).  It then
+inspects the focused pane's title to decide where to route:
+
+- If the title matches ~emacs~ - the pane is running Emacs - Kitty sends the
+  raw control bytes (~\x08~, ~\x0a~, ~\x0b~, ~\x0c~) to the process, letting
+  Emacs handle the keypress.
+- Otherwise Kitty calls ~aerospace focus <direction>~ directly.
+
+Emacs sets its frame title to ~emacs: <buffer-name>~ (via
+~frame-title-format~) so Kitty's regex match is reliable.
+
+#+begin_src conf
+map --when-focus-on var:in_emacs ctrl+h send_text normal \x08
+map --when-focus-on var:in_emacs ctrl+j send_text normal \x0a
+map --when-focus-on var:in_emacs ctrl+k send_text normal \x0b
+map --when-focus-on var:in_emacs ctrl+l send_text normal \x0c
+
+map ctrl+h launch --type=overlay /opt/homebrew/bin/aerospace focus left
+map ctrl+j launch --type=overlay /opt/homebrew/bin/aerospace focus down
+map ctrl+k launch --type=overlay /opt/homebrew/bin/aerospace focus up
+map ctrl+l launch --type=overlay /opt/homebrew/bin/aerospace focus right
+#+end_src
+
+*** Emacs - pane focus with Aerospace fallback
+
+Emacs binds ~C-hjkl~ to ~windmove-*~.  An advice wraps
+~windmove-do-window-select~: if windmove throws (no adjacent pane in that
+direction), the advice falls back to Aerospace instead of erroring.
+
+#+begin_src emacs-lisp
+(defun gatsby>>windmove-aerospace-fallback (fn dir &rest args)
+  (condition-case nil
+      (apply fn dir args)
+    (error
+     (unless (minibuffer-window-active-p (selected-window))
+       (let ((dir-str (symbol-name dir)))
+         (cond
+          ((executable-find "aerospace")
+           (call-process "aerospace" nil nil nil
+                         "focus" "--boundaries" "all-monitors-outer-frame" dir-str)
+           (call-process "aerospace" nil nil nil "move-mouse" "window-lazy-center"))
+          ((getenv "KITTY_WINDOW_ID")
+           ;; running over SSH - send a Kitty DCS escape sequence so the
+           ;; local Kitty process executes `aerospace focus' on the host
+           (send-string-to-terminal <kitty-dcs-payload>))))))))
+
+(advice-add 'windmove-do-window-select :around #'gatsby>>windmove-aerospace-fallback)
+#+end_src
+
+When Emacs is running remotely over SSH, ~KITTY_WINDOW_ID~ is set in the
+environment.  In that case the fallback sends a Kitty DCS escape sequence
+(~\033P@kitty-cmd{...}\033\\~) that causes the local Kitty process to invoke
+~aerospace focus~ on the host machine, so the fallback works correctly even
+across SSH sessions.
+
+** End-to-end key dispatch (macOS with Kitty + Aerospace)
+
+#+begin_example
+C-h pressed
+  |
+  +-- focused app is browser/Slack/etc.
+  |     Karabiner: remap to Alt-h
+  |     Aerospace: alt-h -> focus left
+  |
+  +-- focused app is Kitty, pane title does NOT contain "emacs"
+  |     Karabiner: pass through
+  |     Kitty: C-h -> aerospace focus left
+  |
+  +-- focused app is Kitty, pane title contains "emacs"
+  |     Karabiner: pass through
+  |     Kitty: C-h -> send \x08 to process
+  |     Emacs: windmove-left
+  |       |
+  |       +-- adjacent Emacs pane exists -> move there
+  |       +-- no adjacent pane -> aerospace focus --boundaries all-monitors-outer-frame left
+  |
+  +-- focused app is GUI Emacs
+        Karabiner: pass through
+        Emacs: windmove-left
+          |
+          +-- adjacent Emacs pane exists -> move there
+          +-- no adjacent pane -> aerospace focus left
+#+end_example
+
+** Why this is better than i3-mode
+
+- The dispatch script is slow.  ~aerospace-call~ / ~i3-call~ must query the
+  window manager for the focused window, inspect the process tree, and then
+  either call ~emacsclient~ or run ~aerospace focus~ - all in a subprocess
+  chain.  The latency is noticeable on every keypress, making ~C-hjkl~
+  navigation feel sluggish compared to native bindings.
+- SSH required reverse port forwarding.  When running terminal Emacs over SSH,
+  ~emacsclient~ on the remote machine could not reach the local dispatch script,
+  so the setup required a reverse-forwarded Unix socket (~RemoteForward~ in
+  SSH config).  This added fragile per-host configuration and broke silently
+  whenever the tunnel dropped.  The new approach uses Kitty DCS escape
+  sequences instead, which travel over the existing SSH connection with no
+  extra forwarding.
+- No Emacs server required.  ~i3-mode~ needed ~emacsclient~ to be reachable;
+  the new approach works with any Emacs instance.
+- No extra scripts on ~PATH~.  The logic lives in Karabiner JSON, Kitty
+  config, and an Emacs advice - all in the dotfiles repo with no install step.
+- Simpler per-tool responsibilities.  Each layer does exactly one thing and
+  passes control to the next; there is no central dispatcher script.
+
+* Installation (historical)
 
 ** Dependencies
 
@@ -78,7 +243,7 @@ If neither condition matches, ~aerospace-call~ falls back to walking the process
 tree from the terminal's PID, which works for terminal emulators that do keep
 their shell sessions as child processes.
 
-* The idea
+* The idea (historical)
 
 Window managers intercept key events before it can reach ~emacs~. To allow key
 events go to ~emacs~, I use a simple shell script ~i3-call~/~sway-call~. It
